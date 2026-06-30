@@ -1,65 +1,51 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Building2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { fadeUp, stagger } from "@/lib/motion";
+import { ArrowRight, Building2 } from "lucide-react";
 
 export function CTASection() {
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-primary relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-      <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+    <section className="py-20 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-600 to-orange-700 p-12 text-center"
+        >
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-32 translate-x-32" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24" />
 
-      <motion.div
-        className="relative z-10 max-w-3xl mx-auto text-center"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-80px" }}
-        variants={stagger}
-      >
-        <motion.div variants={fadeUp}>
-          <div className="inline-flex items-center gap-2 bg-white/20 text-white rounded-full px-4 py-1.5 text-sm mb-6">
-            <Building2 className="h-4 w-4" />
-            For Venue Owners
+          <div className="relative z-10">
+            <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Building2 size={32} className="text-white" />
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">
+              Own a Farmhouse?
+            </h2>
+            <p className="text-orange-100 text-lg mb-8 max-w-xl mx-auto">
+              Join 200+ verified vendors on India&apos;s fastest-growing farmhouse marketplace.
+              List your property and start receiving qualified leads today.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/become-vendor"
+                className="inline-flex items-center justify-center gap-2 bg-white text-orange-700 px-8 py-4 rounded-xl font-bold hover:bg-orange-50 transition-colors shadow-lg"
+              >
+                List Your Farmhouse <ArrowRight size={18} />
+              </Link>
+              <Link
+                href="/vendor/login"
+                className="inline-flex items-center justify-center gap-2 border-2 border-white/30 text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/10 transition-colors"
+              >
+                Vendor Login
+              </Link>
+            </div>
           </div>
         </motion.div>
-
-        <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-bold text-white mb-4">
-          List Your Property &amp; Grow Your Business
-        </motion.h2>
-
-        <motion.p variants={fadeUp} className="text-white/80 text-lg mb-8 max-w-xl mx-auto">
-          Join 500+ venue owners already using BookMyFarmhouse to connect with thousands of
-          event planners every month. Free to list, no hidden fees.
-        </motion.p>
-
-        <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link href="/vendor/register">
-            <Button
-              size="lg"
-              className="bg-white text-primary hover:bg-white/90 font-semibold px-8 w-full sm:w-auto"
-            >
-              List Your Property Free
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          </Link>
-          <Link href="/vendor/login">
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-white text-white hover:bg-white/10 px-8 w-full sm:w-auto"
-            >
-              Vendor Login
-            </Button>
-          </Link>
-        </motion.div>
-
-        <motion.p variants={fadeUp} className="text-white/60 text-sm mt-6">
-          No credit card required · Free forever for basic listings
-        </motion.p>
-      </motion.div>
+      </div>
     </section>
   );
 }

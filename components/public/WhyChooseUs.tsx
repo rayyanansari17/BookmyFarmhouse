@@ -1,79 +1,72 @@
 "use client";
 
-import { Shield, Award, Zap, HeartHandshake } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Shield, Star, Zap } from "lucide-react";
 import { motion } from "framer-motion";
-import { fadeUp, stagger } from "@/lib/motion";
 
 const FEATURES = [
   {
     icon: Shield,
     title: "Verified Venues",
-    description:
-      "Every listing is reviewed and verified by our team before going live. No surprises on event day.",
+    description: "Every farmhouse goes through a rigorous verification process. We inspect properties personally before listing them on our platform.",
+    color: "bg-blue-50 text-blue-600",
+    accentColor: "border-blue-200",
   },
   {
-    icon: Award,
+    icon: Star,
     title: "Premium Selection",
-    description:
-      "Curated farmhouses and event spaces rated 4+ stars by real guests, so quality is guaranteed.",
+    description: "Only the finest farmhouses make our cut. We curate the top 10% of venues to ensure you always find exactly what you need.",
+    color: "bg-amber-50 text-amber-600",
+    accentColor: "border-amber-200",
   },
   {
     icon: Zap,
     title: "Instant Connections",
-    description:
-      "Inquire directly with venue owners and get responses within hours — no middlemen, no delays.",
-  },
-  {
-    icon: HeartHandshake,
-    title: "Dedicated Support",
-    description:
-      "Our team is available 7 days a week to help you find the perfect venue for your celebration.",
+    description: "Skip the middleman. Your inquiry goes directly to the venue owner and you get a response within 24 hours, always.",
+    color: "bg-orange-50 text-orange-600",
+    accentColor: "border-orange-200",
   },
 ];
 
 export function WhyChooseUs() {
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
-      <div className="max-w-7xl mx-auto">
+    <section id="why-us" className="py-20 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <motion.div
-          className="text-center mb-12"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
-          variants={fadeUp}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
         >
-          <div className="text-primary text-sm font-semibold mb-2">Why BookMyFarmhouse</div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
-            The Smart Way to Find Venues
+          <p className="text-orange-600 text-sm font-semibold uppercase tracking-wider mb-3">Why Us</p>
+          <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-4">
+            The Smarter Way to Find<br />Your Perfect Venue
           </h2>
-          <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
-            We&apos;ve made the venue search process simple, transparent, and reliable for both
-            event planners and venue owners.
+          <p className="text-gray-500 max-w-xl mx-auto">
+            We&apos;re not just a directory. We&apos;re a curated marketplace that connects you directly with the best farmhouse owners in India.
           </p>
         </motion.div>
 
-        <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-60px" }}
-          variants={stagger}
-        >
-          {FEATURES.map(({ icon: Icon, title, description }) => (
-            <motion.div key={title} variants={fadeUp}>
-              <Card className="border-border hover:border-primary/30 hover:shadow-md transition-all duration-300 group h-full">
-                <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                    <Icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-2">{title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {FEATURES.map((f, i) => {
+            const Icon = f.icon;
+            return (
+              <motion.div
+                key={f.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.15 }}
+                className={`group p-8 rounded-2xl border-2 ${f.accentColor} hover:shadow-lg transition-all duration-300 hover:-translate-y-1`}
+              >
+                <div className={`w-14 h-14 rounded-2xl ${f.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                  <Icon size={26} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">{f.title}</h3>
+                <p className="text-gray-500 leading-relaxed text-sm">{f.description}</p>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
