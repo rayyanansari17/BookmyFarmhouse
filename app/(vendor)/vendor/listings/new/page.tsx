@@ -1,18 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Loader2, Upload, X, CheckCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Upload, X, CheckCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { AMENITIES_LIST, EVENT_TYPES, type ILocation } from "@/types";
+import { AMENITIES_LIST, EVENT_TYPES } from "@/types";
+import { CityCombobox } from "@/components/vendor/CityCombobox";
+import { AddressAutocomplete } from "@/components/vendor/AddressAutocomplete";
 
 type FormData = {
   title: string;
@@ -34,12 +33,12 @@ const STEPS = ["Basic Info", "Details", "Images", "Preview"];
 export default function AddListingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [cities, setCities] = useState<ILocation[]>([]);
   const [saving, setSaving] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [generatingDesc, setGeneratingDesc] = useState(false);
 
   const [form, setForm] = useState<FormData>({
     title: "",
@@ -56,12 +55,6 @@ export default function AddListingPage() {
     rules: "",
   });
 
-  useEffect(() => {
-    fetch("/api/locations")
-      .then((r) => r.json())
-      .then((d) => { if (d.success) setCities(d.data); });
-  }, []);
-
   const set = (key: keyof FormData, value: string) =>
     setForm((p) => ({ ...p, [key]: value }));
 
@@ -72,6 +65,35 @@ export default function AddListingPage() {
         ? p[key].filter((v) => v !== value)
         : [...p[key], value],
     }));
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!form.title.trim()) {
+      toast.error("Enter a property title first");
+      return;
+    }
+    setGeneratingDesc(true);
+    try {
+      const res = await fetch("/api/vendor/generate-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title,
+          city: form.city,
+          state: form.state,
+          amenities: form.amenities,
+          eventTypes: form.eventTypes,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      set("description", data.description);
+      toast.success("Description generated!");
+    } catch {
+      toast.error("Failed to generate description. Check your Groq API key.");
+    } finally {
+      setGeneratingDesc(false);
+    }
   };
 
   const handleImageSelect = (files: FileList | null) => {
@@ -144,7 +166,7 @@ export default function AddListingPage() {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
-    } catch (err) {
+    } catch {
       toast.error("Images upload failed — you can add them later from the edit page");
     } finally {
       setUploadingImages(false);
@@ -177,8 +199,6 @@ export default function AddListingPage() {
     router.push("/vendor/listings");
   };
 
-  const selectedCity = cities.find((c) => c.city === form.city);
-
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       {/* Header */}
@@ -208,55 +228,76 @@ export default function AddListingPage() {
       <div className="bg-card border border-border rounded-2xl p-6">
         {step === 0 && (
           <div className="space-y-5">
+            {/* Title */}
             <div className="space-y-1.5">
               <Label>Property Title *</Label>
               <Input
                 placeholder="e.g. Green Valley Farmhouse with Pool"
                 value={form.title}
+                maxLength={100}
                 onChange={(e) => set("title", e.target.value)}
               />
               <p className="text-xs text-muted-foreground">{form.title.length}/100</p>
             </div>
 
+            {/* City + State */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>City *</Label>
-                <Select value={form.city} onValueChange={(v) => {
-                  if (!v) return;
-                  set("city", v);
-                  const loc = cities.find((c) => c.city === v);
-                  if (loc) set("state", loc.state);
-                }}>
-                  <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
-                  <SelectContent>
-                    {cities.map((c) => (
-                      <SelectItem key={c._id} value={c.city}>
-                        {c.city.charAt(0).toUpperCase() + c.city.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <CityCombobox
+                  value={form.city}
+                  onSelect={(city, state) => {
+                    setForm((p) => ({ ...p, city, state }));
+                  }}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>State</Label>
-                <Input value={form.state} onChange={(e) => set("state", e.target.value)} placeholder="Maharashtra" />
+                <Input
+                  value={form.state}
+                  onChange={(e) => set("state", e.target.value)}
+                  placeholder="Auto-filled from city"
+                />
               </div>
             </div>
 
+            {/* Address with Google Maps autocomplete */}
             <div className="space-y-1.5">
               <Label>Address (optional)</Label>
-              <Input placeholder="Village / street address" value={form.address} onChange={(e) => set("address", e.target.value)} />
+              <AddressAutocomplete
+                value={form.address}
+                onChange={(v) => set("address", v)}
+                placeholder="Village / street address — start typing to search"
+              />
             </div>
 
+            {/* Description with AI button */}
             <div className="space-y-1.5">
               <Label>Description *</Label>
               <Textarea
                 placeholder="Describe your property — atmosphere, key features, surroundings..."
                 rows={5}
                 value={form.description}
+                maxLength={5000}
                 onChange={(e) => set("description", e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">{form.description.length}/5000</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">{form.description.length}/5000</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateDescription}
+                  disabled={generatingDesc}
+                  className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-primary hover:border-primary"
+                >
+                  {generatingDesc
+                    ? <Loader2 className="h-3 w-3 animate-spin" />
+                    : <Sparkles className="h-3 w-3" />
+                  }
+                  {generatingDesc ? "Generating..." : "Generate with AI"}
+                </Button>
+              </div>
             </div>
           </div>
         )}

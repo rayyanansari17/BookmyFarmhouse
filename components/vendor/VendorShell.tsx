@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/vendor", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/vendor/listings", label: "My Listings", icon: Building2 },
+  { href: "/vendor/listings", label: "My Listings", icon: Building2, excludes: ["/vendor/listings/new"] },
   { href: "/vendor/listings/new", label: "Add Listing", icon: Plus },
   { href: "/vendor/leads", label: "Leads", icon: MessageSquare },
   { href: "/vendor/profile", label: "Profile", icon: User },
@@ -34,16 +34,19 @@ function NavItem({
   label,
   icon: Icon,
   exact,
+  excludes,
   onClick,
 }: {
   href: string;
   label: string;
   icon: React.ElementType;
   exact?: boolean;
+  excludes?: string[];
   onClick?: () => void;
 }) {
   const pathname = usePathname();
-  const active = exact ? pathname === href : pathname.startsWith(href);
+  const excluded = excludes?.some((p) => pathname.startsWith(p)) ?? false;
+  const active = !excluded && (exact ? pathname === href : pathname.startsWith(href));
 
   return (
     <Link
@@ -130,9 +133,10 @@ export function VendorShell({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const pathname = usePathname();
 
-  const currentItem = NAV_ITEMS.find((i) =>
-    i.exact ? pathname === i.href : pathname.startsWith(i.href)
-  );
+  const currentItem = NAV_ITEMS.find((i) => {
+    const excluded = i.excludes?.some((p) => pathname.startsWith(p)) ?? false;
+    return !excluded && (i.exact ? pathname === i.href : pathname.startsWith(i.href));
+  });
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">

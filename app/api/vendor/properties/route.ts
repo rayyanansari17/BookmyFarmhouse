@@ -58,10 +58,11 @@ export async function POST(req: NextRequest) {
     const { city, state, address, capacityMin, capacityMax, priceMin, priceMax, ...rest } =
       parsed.data;
 
-    // Validate city exists
-    const location = await Location.findOne({ city: city.toLowerCase(), isActive: true });
+    // Find or auto-create the location record
+    let location = await Location.findOne({ city: city.toLowerCase() });
     if (!location) {
-      return NextResponse.json({ success: false, error: "Invalid city" }, { status: 400 });
+      location = new Location({ city: city.toLowerCase(), state: state ?? "" });
+      await location.save();
     }
 
     const property = await Property.create({
