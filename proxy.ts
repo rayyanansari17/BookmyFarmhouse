@@ -5,6 +5,18 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth;
 
+  // ── Redirect already-logged-in users away from login pages ───────────────
+  if (pathname === "/admin/login" && session?.user.role === "admin") {
+    return NextResponse.redirect(new URL("/admin", req.url));
+  }
+
+  if (
+    (pathname === "/vendor/login" || pathname === "/vendor/register") &&
+    session?.user.role === "vendor"
+  ) {
+    return NextResponse.redirect(new URL("/vendor", req.url));
+  }
+
   // ── Vendor routes ─────────────────────────────────────────────────────────
   const isVendorPublic =
     pathname === "/vendor/login" ||
