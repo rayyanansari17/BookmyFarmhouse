@@ -96,6 +96,16 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
   );
 }
 
+export function AdminShellWrapper({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  if (pathname === "/admin/login") return <>{children}</>;
+  return (
+    <AdminShell>
+      {children}
+    </AdminShell>
+  );
+}
+
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
