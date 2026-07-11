@@ -15,10 +15,18 @@ export function Header() {
   const isHome = pathname === "/";
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    onScroll(); // read immediately on mount (handles hard refresh with restored scroll)
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Re-read scroll on every route change — scrolled state persists across
+  // client-side navigation, so navigating back to "/" from a scrolled page
+  // would keep the navbar white even though the page is at the top.
+  useEffect(() => {
+    setScrolled(window.scrollY > 20);
+  }, [pathname]);
 
   useEffect(() => setMenuOpen(false), [pathname]);
 

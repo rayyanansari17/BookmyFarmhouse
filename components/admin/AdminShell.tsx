@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
   LayoutDashboard, Clock, Building2, Users, MessageSquare,
-  BarChart3, MapPin, LogOut, Menu, X, ChevronRight,
+  BarChart3, MapPin, LogOut, Menu, X, ChevronRight, ScanSearch, ExternalLink,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/admin/leads", label: "Leads", icon: MessageSquare },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/settings/locations", label: "Locations", icon: MapPin },
+  { href: "/admin/scraper", label: "Scraper", icon: ScanSearch },
 ];
 
 function NavItem({ href, label, icon: Icon, exact, onClick }: {
@@ -82,6 +83,14 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
               <p className="text-xs text-muted-foreground">Administrator</p>
             </div>
           </div>
+          <a
+            href="https://bookmyfarmhouse.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-2 flex items-center justify-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground w-full"
+          >
+            <ExternalLink className="h-3.5 w-3.5" /> View Site
+          </a>
           <Button
             variant="outline"
             size="sm"

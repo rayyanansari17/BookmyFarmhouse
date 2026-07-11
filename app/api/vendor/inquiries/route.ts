@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     if (status && status !== "all") filter.status = status;
 
     const skip = (page - 1) * limit;
-    const [inquiries, total] = await Promise.all([
+    const [rawInquiries, total] = await Promise.all([
       Inquiry.find(filter)
         .populate("propertyId", "title slug images")
         .sort({ createdAt: -1 })
@@ -29,6 +29,12 @@ export async function GET(req: NextRequest) {
         .lean(),
       Inquiry.countDocuments(filter),
     ]);
+
+    // Strip contact details — callers must POST /[id]/reveal to unlock them
+    const inquiries = rawInquiries.map(({ customer, ...rest }) => ({
+      ...rest,
+      customer: { name: customer.name },
+    }));
 
     return NextResponse.json({
       success: true,

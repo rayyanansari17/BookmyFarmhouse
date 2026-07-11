@@ -16,6 +16,12 @@ export interface IUser {
   about?: string;
   authProvider: "local" | "google";
   googleId?: string;
+  // Freemium subscription
+  subscriptionPlan?: "free" | "growth" | "pro";
+  subscriptionExpiresAt?: string;
+  trialEndsAt?: string;
+  monthlyLeadRevealCount?: number;
+  leadCountResetAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -62,6 +68,13 @@ export interface IProperty {
   activityLog: IActivityLog[];
   eventTypes?: string[];
   tags?: string[];
+  // Scraper fields
+  source?: "vendor" | "scraped";
+  claimed?: boolean;
+  claimedAt?: string;
+  googlePlaceId?: string;
+  scrapedPhone?: string;
+  scrapedWebsite?: string;
   createdAt: string;
   updatedAt: string;
 }

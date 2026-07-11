@@ -32,6 +32,14 @@ export interface IPropertyDocument extends Document {
   activityLog: IActivityLog[];
   eventTypes?: string[];
   tags?: string[];
+  // Scraper fields
+  source: "vendor" | "scraped";
+  claimed: boolean;
+  claimedAt?: Date;
+  googlePlaceId?: string;
+  scrapedPhone?: string;
+  scrapedWebsite?: string;
+  externalImageUrls: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -81,6 +89,14 @@ const PropertySchema = new Schema<IPropertyDocument>(
     ],
     eventTypes: [{ type: String }],
     tags: [{ type: String }],
+    // Scraper fields
+    source: { type: String, enum: ["vendor", "scraped"], default: "vendor" },
+    claimed: { type: Boolean, default: false, index: true },
+    claimedAt: { type: Date },
+    googlePlaceId: { type: String, sparse: true, unique: true },
+    scrapedPhone: { type: String, trim: true },
+    scrapedWebsite: { type: String, trim: true },
+    externalImageUrls: [{ type: String }],
   },
   { timestamps: true }
 );
@@ -89,6 +105,7 @@ PropertySchema.index({ status: 1, isDeleted: 1 });
 PropertySchema.index({ "location.city": 1, status: 1, isDeleted: 1 });
 PropertySchema.index({ "priceRange.min": 1, "priceRange.max": 1 });
 PropertySchema.index({ "capacity.max": 1 });
+PropertySchema.index({ source: 1, claimed: 1, status: 1 });
 PropertySchema.index(
   { title: "text", description: "text" },
   { weights: { title: 10, description: 5 } }

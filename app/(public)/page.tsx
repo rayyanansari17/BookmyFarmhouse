@@ -10,7 +10,7 @@ import type { IProperty } from "@/types";
 async function getFeaturedProperties(): Promise<IProperty[]> {
   try {
     const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-    const res = await fetch(`${baseUrl}/api/properties?featured=true&limit=12&sortBy=rating`, {
+    const res = await fetch(`${baseUrl}/api/properties?limit=4&sortBy=rating`, {
       next: { revalidate: 300 },
     });
     const data = await res.json();

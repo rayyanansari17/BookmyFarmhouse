@@ -231,9 +231,9 @@ function SearchPageInner() {
   };
 
   return (
-    <div className="pt-16 min-h-screen bg-background">
+    <div className="pt-16 md:pt-20 min-h-screen bg-background">
       {/* Top bar */}
-      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
+      <div className="sticky top-16 md:top-20 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
           {/* Search input */}
           <div className="relative flex-1 max-w-xs">
@@ -293,7 +293,7 @@ function SearchPageInner() {
         <div className="flex gap-8">
           {/* Desktop filter sidebar */}
           <aside className="hidden lg:block w-64 shrink-0">
-            <div className="sticky top-36">
+            <div className="sticky top-36 md:top-40">
               <h3 className="font-semibold text-sm mb-4">Filters</h3>
               <FilterPanel
                 filters={filters}

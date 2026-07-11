@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Users, ShieldOff, ShieldCheck, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Search, Users, ShieldOff, ShieldCheck, ChevronLeft, ChevronRight, Loader2, CreditCard } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,20 @@ import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import type { IUser } from "@/types";
 
+type SubscriptionPlan = "free" | "growth" | "pro";
+
+const PLAN_LABELS: Record<SubscriptionPlan, string> = {
+  free: "Free",
+  growth: "Growth",
+  pro: "Pro",
+};
+
+const PLAN_COLORS: Record<SubscriptionPlan, string> = {
+  free: "bg-muted text-muted-foreground",
+  growth: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  pro: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+};
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<IUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +37,7 @@ export default function AdminUsersPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [confirmDialog, setConfirmDialog] = useState<{ user: IUser; action: "suspend" | "activate" } | null>(null);
+  const [planDialog, setPlanDialog] = useState<{ user: IUser; selectedPlan: SubscriptionPlan } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const limit = 15;
 
@@ -71,6 +86,30 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handlePlanChange = async () => {
+    if (!planDialog) return;
+    setActionLoading(true);
+    const { user, selectedPlan } = planDialog;
+    try {
+      const res = await fetch(`/api/admin/users/${user._id}/subscription`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: selectedPlan }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      setUsers((prev) =>
+        prev.map((u) => u._id === user._id ? { ...u, subscriptionPlan: selectedPlan } : u)
+      );
+      toast.success(`${user.name} upgraded to ${PLAN_LABELS[selectedPlan]}`);
+      setPlanDialog(null);
+    } catch {
+      toast.error("Failed to update plan");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const totalPages = Math.ceil(total / limit);
 
   return (
@@ -113,6 +152,7 @@ export default function AdminUsersPage() {
                 <TableHead>Vendor</TableHead>
                 <TableHead>Business</TableHead>
                 <TableHead>Phone</TableHead>
+                <TableHead>Plan</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -122,68 +162,84 @@ export default function AdminUsersPage() {
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 6 }).map((_, j) => <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>)}
+                    {Array.from({ length: 7 }).map((_, j) => <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>)}
                   </TableRow>
                 ))
               ) : users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                     <Users className="h-8 w-8 mx-auto mb-2 opacity-40" />
                     No vendors found
                   </TableCell>
                 </TableRow>
               ) : (
-                users.map((user) => (
-                  <TableRow key={user._id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8 shrink-0">
-                          {user.profileImage && <AvatarImage src={user.profileImage} />}
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                            {user.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
-                          <p className="text-xs text-muted-foreground truncate max-w-[160px]">{user.email}</p>
+                users.map((user) => {
+                  const plan = (user.subscriptionPlan ?? "free") as SubscriptionPlan;
+                  return (
+                    <TableRow key={user._id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8 shrink-0">
+                            {user.profileImage && <AvatarImage src={user.profileImage} />}
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                              {user.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
+                            <p className="text-xs text-muted-foreground truncate max-w-[160px]">{user.email}</p>
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{user.businessName || "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{user.phone || "—"}</TableCell>
-                    <TableCell>
-                      {user.isSuspended ? (
-                        <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-0 text-xs">Suspended</Badge>
-                      ) : (
-                        <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0 text-xs">Active</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{formatDate(user.createdAt)}</TableCell>
-                    <TableCell>
-                      <div className="flex justify-end">
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{user.businessName || "—"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{user.phone || "—"}</TableCell>
+                      <TableCell>
+                        <Badge className={`border-0 text-xs ${PLAN_COLORS[plan]}`}>
+                          {PLAN_LABELS[plan]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         {user.isSuspended ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-2.5 text-xs text-green-700 border-green-300 hover:bg-green-50 dark:hover:bg-green-900/20"
-                            onClick={() => setConfirmDialog({ user, action: "activate" })}
-                          >
-                            <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Activate
-                          </Button>
+                          <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-0 text-xs">Suspended</Badge>
                         ) : (
+                          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0 text-xs">Active</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{formatDate(user.createdAt)}</TableCell>
+                      <TableCell>
+                        <div className="flex justify-end gap-1.5">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-7 px-2.5 text-xs text-red-700 border-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
-                            onClick={() => setConfirmDialog({ user, action: "suspend" })}
+                            className="h-7 px-2.5 text-xs"
+                            onClick={() => setPlanDialog({ user, selectedPlan: plan })}
                           >
-                            <ShieldOff className="h-3.5 w-3.5 mr-1" /> Suspend
+                            <CreditCard className="h-3.5 w-3.5 mr-1" /> Plan
                           </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                          {user.isSuspended ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2.5 text-xs text-green-700 border-green-300 hover:bg-green-50 dark:hover:bg-green-900/20"
+                              onClick={() => setConfirmDialog({ user, action: "activate" })}
+                            >
+                              <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Activate
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2.5 text-xs text-red-700 border-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              onClick={() => setConfirmDialog({ user, action: "suspend" })}
+                            >
+                              <ShieldOff className="h-3.5 w-3.5 mr-1" /> Suspend
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -205,6 +261,7 @@ export default function AdminUsersPage() {
         )}
       </Card>
 
+      {/* Suspend / Activate Dialog */}
       <Dialog open={!!confirmDialog} onOpenChange={() => setConfirmDialog(null)}>
         <DialogContent>
           <DialogHeader>
@@ -227,6 +284,42 @@ export default function AdminUsersPage() {
             >
               {actionLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               {confirmDialog?.action === "suspend" ? "Suspend" : "Activate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Set Plan Dialog */}
+      <Dialog open={!!planDialog} onOpenChange={() => setPlanDialog(null)}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Set Subscription Plan</DialogTitle>
+            <DialogDescription>
+              Override {planDialog?.user.name}&apos;s subscription. Monthly reveal count resets immediately.
+            </DialogDescription>
+          </DialogHeader>
+          {planDialog && (
+            <div className="py-2">
+              <Select
+                value={planDialog.selectedPlan}
+                onValueChange={(v) => v && setPlanDialog({ ...planDialog, selectedPlan: v as SubscriptionPlan })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="free">Free — 5 reveals/month</SelectItem>
+                  <SelectItem value="growth">Growth — 30 reveals/month</SelectItem>
+                  <SelectItem value="pro">Pro — Unlimited reveals</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPlanDialog(null)}>Cancel</Button>
+            <Button onClick={handlePlanChange} disabled={actionLoading}>
+              {actionLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Save Plan
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -50,7 +50,7 @@ const CHECKLIST = [
 
 export default function BecomeVendorPage() {
   return (
-    <div className="pt-16 bg-background">
+    <div className="pt-16 md:pt-20 bg-background">
       {/* Hero */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 via-background to-background">
         <div className="max-w-4xl mx-auto text-center">

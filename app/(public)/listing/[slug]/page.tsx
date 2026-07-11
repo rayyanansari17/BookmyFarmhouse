@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ListingGallery } from "./ListingGallery";
 import { InquiryTrigger } from "./InquiryTrigger";
+import { JsonLd } from "@/components/common/JsonLd";
+import { buildLocalBusinessSchema, buildBreadcrumbSchema } from "@/lib/schema";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { IProperty, IUser } from "@/types";
 
@@ -61,9 +63,16 @@ export default async function ListingDetailPage({
 
   const vendor = property.vendorId as IUser;
   const city = property.location.city.charAt(0).toUpperCase() + property.location.city.slice(1);
+  const baseUrl = process.env.NEXTAUTH_URL ?? "https://bookmyfarmhouse.app";
 
   return (
-    <div className="pt-16 bg-background min-h-screen">
+    <div className="pt-16 md:pt-20 bg-background min-h-screen">
+      <JsonLd schema={buildLocalBusinessSchema(property, baseUrl)} />
+      <JsonLd schema={buildBreadcrumbSchema([
+        { name: "Home", url: baseUrl },
+        { name: `Farmhouses in ${city}`, url: `${baseUrl}/farmhouses-in-${property.location.city}` },
+        { name: property.title, url: `${baseUrl}/listing/${property.slug}` },
+      ])} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Back */}
         <Link
@@ -76,6 +85,25 @@ export default async function ListingDetailPage({
 
         {/* Gallery */}
         <ListingGallery images={property.images} title={property.title} />
+
+        {/* Claim banner — only for unclaimed scraped listings */}
+        {property.source === "scraped" && !property.claimed && (
+          <div className="mt-6 flex items-start gap-4 rounded-xl border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-950/20 p-4">
+            <Building2 className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-foreground text-sm">Is this your venue?</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Claim this listing to manage photos, respond to enquiries, and access leads.
+              </p>
+            </div>
+            <Link
+              href={`/become-vendor?claim=${property._id}`}
+              className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-orange-500 bg-background px-3 py-1.5 text-sm font-medium text-orange-600 transition-colors hover:bg-orange-50 dark:hover:bg-orange-950/30"
+            >
+              Claim this listing →
+            </Link>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
           {/* Main content */}
@@ -94,7 +122,11 @@ export default async function ListingDetailPage({
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <MapPin className="h-4 w-4 text-primary" />
                 <span>
-                  {property.location.address ? `${property.location.address}, ` : ""}
+                  {(() => {
+                    const addr = property.location.address?.trim();
+                    const clean = addr && addr !== "[]" && addr !== "null" && /\w/.test(addr) ? addr : null;
+                    return clean ? `${clean}, ` : "";
+                  })()}
                   {city}
                   {property.location.state ? `, ${property.location.state}` : ""}
                 </span>

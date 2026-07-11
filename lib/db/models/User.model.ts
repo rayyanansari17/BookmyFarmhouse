@@ -17,6 +17,12 @@ export interface IUserDocument extends Document {
   profileImage?: string;
   profileImagePublicId?: string;
   about?: string;
+  // Freemium subscription
+  subscriptionPlan: "free" | "growth" | "pro";
+  subscriptionExpiresAt?: Date;
+  trialEndsAt?: Date;
+  monthlyLeadRevealCount: number;
+  leadCountResetAt?: Date;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(plain: string): Promise<boolean>;
@@ -39,6 +45,12 @@ const UserSchema = new Schema<IUserDocument>(
     profileImage: { type: String },
     profileImagePublicId: { type: String },
     about: { type: String, maxlength: 1000 },
+    // Freemium subscription
+    subscriptionPlan: { type: String, enum: ["free", "growth", "pro"], default: "free" },
+    subscriptionExpiresAt: { type: Date },
+    trialEndsAt: { type: Date },
+    monthlyLeadRevealCount: { type: Number, default: 0 },
+    leadCountResetAt: { type: Date },
   },
   { timestamps: true }
 );

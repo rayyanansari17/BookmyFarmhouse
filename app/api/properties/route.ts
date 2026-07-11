@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
 
     const sortMap: Record<string, Record<string, 1 | -1>> = {
       newest: { createdAt: -1 },
-      rating: { rating: -1 },
+      rating: { rating: -1, createdAt: -1 },
       price_asc: { "priceRange.min": 1 },
       price_desc: { "priceRange.max": -1 },
     };

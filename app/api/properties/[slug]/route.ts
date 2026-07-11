@@ -15,6 +15,7 @@ export async function GET(
       status: "approved",
       isDeleted: false,
     })
+      .select("-scrapedPhone -scrapedWebsite")
       .populate("vendorId", "name email businessName profileImage about phone")
       .lean();
 

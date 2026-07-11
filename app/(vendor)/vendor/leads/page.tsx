@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Phone, Mail, Calendar, Users } from "lucide-react";
+import { Search, Phone, Mail, Calendar, Users, Lock, Loader2, ArrowUpRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -15,13 +16,20 @@ import type { IInquiry } from "@/types";
 
 const STATUS_OPTIONS = ["all", "new", "contacted", "converted", "closed"] as const;
 
+interface RevealedContact { phone: string; email: string }
+interface LeadWithName extends Omit<IInquiry, "customer"> {
+  customer: { name: string };
+}
+
 export default function LeadsDashboard() {
-  const [leads, setLeads] = useState<IInquiry[]>([]);
+  const [leads, setLeads] = useState<LeadWithName[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [revealingId, setRevealingId] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState<Record<string, RevealedContact>>({});
 
   const fetchLeads = useCallback(async () => {
     setLoading(true);
@@ -55,18 +63,48 @@ export default function LeadsDashboard() {
         prev.map((l) => (l._id === id ? { ...l, status: status as IInquiry["status"] } : l))
       );
       toast.success("Status updated");
-    } catch (err) {
+    } catch {
       toast.error("Failed to update status");
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const filtered = leads.filter(
-    (l) =>
-      l.customer.name.toLowerCase().includes(search.toLowerCase()) ||
-      l.customer.email.toLowerCase().includes(search.toLowerCase()) ||
-      l.customer.phone.includes(search)
+  const handleReveal = async (id: string) => {
+    if (revealed[id]) return;
+    setRevealingId(id);
+    try {
+      const res = await fetch(`/api/vendor/inquiries/${id}/reveal`, { method: "POST" });
+      const data = await res.json();
+
+      if (res.status === 402) {
+        const planLabel = data.plan === "free" ? "Free" : "Growth";
+        toast.error(`${planLabel} plan limit reached`, {
+          description: data.message,
+          action: {
+            label: "Upgrade",
+            onClick: () => window.open("/vendor/upgrade", "_blank"),
+          },
+          duration: 6000,
+        });
+        return;
+      }
+
+      if (!data.success) throw new Error(data.error);
+      setRevealed((prev) => ({ ...prev, [id]: data.contact }));
+      const remaining = data.remaining === Infinity ? "∞" : data.remaining;
+      toast.success("Contact revealed", {
+        description: `${remaining} reveal${remaining === "∞" ? "s" : ""} remaining this month`,
+      });
+    } catch {
+      toast.error("Failed to reveal contact");
+    } finally {
+      setRevealingId(null);
+    }
+  };
+
+  const filtered = leads.filter((l) =>
+    l.customer.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const statusCounts = leads.reduce(
@@ -103,7 +141,7 @@ export default function LeadsDashboard() {
       <div className="relative max-w-xs">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search leads..."
+          placeholder="Search by name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -138,82 +176,108 @@ export default function LeadsDashboard() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map((lead) => (
-            <Card key={lead._id} className="border-border hover:shadow-md transition-shadow">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center text-primary font-semibold text-sm shrink-0">
-                      {lead.customer.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-foreground text-sm">{lead.customer.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{lead.eventType} event</p>
-                    </div>
-                  </div>
-                  <Select
-                    value={lead.status}
-                    onValueChange={(v) => v && updateStatus(lead._id, v)}
-                    disabled={updatingId === lead._id}
-                  >
-                    <SelectTrigger className="h-7 text-xs w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.filter((s) => s !== "all").map((s) => (
-                        <SelectItem key={s} value={s} className="text-xs capitalize">
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          {filtered.map((lead) => {
+            const contact = revealed[lead._id];
+            const isRevealing = revealingId === lead._id;
 
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Phone className="h-3.5 w-3.5 text-primary" />
-                    <a href={`tel:${lead.customer.phone}`} className="hover:text-primary">
-                      {lead.customer.phone}
-                    </a>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Mail className="h-3.5 w-3.5 text-primary" />
-                    <a href={`mailto:${lead.customer.email}`} className="hover:text-primary truncate">
-                      {lead.customer.email}
-                    </a>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5 text-primary" />
-                      {formatDate(lead.eventDate)}
+            return (
+              <Card key={lead._id} className="border-border hover:shadow-md transition-shadow">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center text-primary font-semibold text-sm shrink-0">
+                        {lead.customer.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground text-sm">{lead.customer.name}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{lead.eventType} event</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Users className="h-3.5 w-3.5 text-primary" />
-                      {lead.guestCount} guests
+                    <Select
+                      value={lead.status}
+                      onValueChange={(v) => v && updateStatus(lead._id, v)}
+                      disabled={updatingId === lead._id}
+                    >
+                      <SelectTrigger className="h-7 text-xs w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STATUS_OPTIONS.filter((s) => s !== "all").map((s) => (
+                          <SelectItem key={s} value={s} className="text-xs capitalize">
+                            {s}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {contact ? (
+                      <>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Phone className="h-3.5 w-3.5 text-primary" />
+                          <a href={`tel:${contact.phone}`} className="hover:text-primary font-medium">
+                            {contact.phone}
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Mail className="h-3.5 w-3.5 text-primary" />
+                          <a href={`mailto:${contact.email}`} className="hover:text-primary truncate">
+                            {contact.email}
+                          </a>
+                        </div>
+                      </>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2 h-8 text-xs border-dashed"
+                        onClick={() => handleReveal(lead._id)}
+                        disabled={isRevealing}
+                      >
+                        {isRevealing ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Lock className="h-3.5 w-3.5" />
+                        )}
+                        {isRevealing ? "Unlocking..." : "Reveal Contact"}
+                        {!isRevealing && <ArrowUpRight className="h-3 w-3 ml-auto opacity-50" />}
+                      </Button>
+                    )}
+
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Calendar className="h-3.5 w-3.5 text-primary" />
+                        {formatDate(lead.eventDate)}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Users className="h-3.5 w-3.5 text-primary" />
+                        {lead.guestCount} guests
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {lead.message && (
-                  <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border line-clamp-2">
-                    &quot;{lead.message}&quot;
-                  </p>
-                )}
+                  {lead.message && (
+                    <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border line-clamp-2">
+                      &quot;{lead.message}&quot;
+                    </p>
+                  )}
 
-                <div className="flex items-center justify-between mt-3 pt-2">
-                  <span className="text-xs text-muted-foreground">
-                    Received {formatDate(lead.createdAt)}
-                  </span>
-                  <Badge
-                    variant="secondary"
-                    className={`text-xs capitalize ${getStatusColor(lead.status)}`}
-                  >
-                    {lead.status}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="flex items-center justify-between mt-3 pt-2">
+                    <span className="text-xs text-muted-foreground">
+                      Received {formatDate(lead.createdAt)}
+                    </span>
+                    <Badge
+                      variant="secondary"
+                      className={`text-xs capitalize ${getStatusColor(lead.status)}`}
+                    >
+                      {lead.status}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
