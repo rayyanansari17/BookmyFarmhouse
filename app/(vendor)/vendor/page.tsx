@@ -189,7 +189,7 @@ export default function VendorDashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{listing.title}</p>
-                    <p className="text-xs text-muted-foreground">{formatCurrency(listing.priceRange.min)}</p>
+                    <p className="text-xs text-muted-foreground">{listing.priceRange?.min ? formatCurrency(listing.priceRange.min) : "—"}</p>
                   </div>
                   <Badge
                     variant="secondary"

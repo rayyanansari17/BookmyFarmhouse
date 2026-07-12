@@ -176,12 +176,12 @@ export default function AdminListingsPage() {
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-foreground truncate max-w-[160px]">{listing.title}</p>
-                          <p className="text-xs text-muted-foreground">{listing.capacity.min}–{listing.capacity.max} guests</p>
+                          <p className="text-xs text-muted-foreground">{listing.capacity?.max ? `Up to ${listing.capacity.max}` : "—"} guests</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-sm capitalize text-muted-foreground">{listing.location.city}</TableCell>
-                    <TableCell className="text-sm text-foreground">{formatCurrency(listing.priceRange.min)}</TableCell>
+                    <TableCell className="text-sm text-foreground">{listing.priceRange?.min ? formatCurrency(listing.priceRange.min) : "—"}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />

@@ -181,8 +181,8 @@ export default function MyListingsPage() {
                     {listing.location.city}
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-sm text-foreground">
-                    {formatCurrency(listing.priceRange.min)}
-                    {listing.priceRange.max > listing.priceRange.min && (
+                    {listing.priceRange?.min ? formatCurrency(listing.priceRange.min) : "—"}
+                    {listing.priceRange?.max && listing.priceRange.max > (listing.priceRange.min ?? 0) && (
                       <span className="text-muted-foreground"> – {formatCurrency(listing.priceRange.max)}</span>
                     )}
                   </TableCell>

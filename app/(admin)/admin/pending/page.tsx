@@ -118,7 +118,7 @@ export default function PendingListingsPage() {
                             {listing.location.city}, {listing.location.state}
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {formatCurrency(listing.priceRange.min)} – {formatCurrency(listing.priceRange.max)} · Up to {listing.capacity.max} guests
+                            {listing.priceRange?.min ? `${formatCurrency(listing.priceRange.min)} – ${formatCurrency(listing.priceRange.max)}` : "Price TBD"} · {listing.capacity?.max ? `Up to ${listing.capacity.max}` : "—"} guests
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             Submitted {formatDate(listing.createdAt)}

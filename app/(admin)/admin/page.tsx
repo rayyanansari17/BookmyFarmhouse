@@ -141,7 +141,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{listing.title}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{listing.location.city} · {formatCurrency(listing.priceRange.min)}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{listing.location.city}{listing.priceRange?.min ? ` · ${formatCurrency(listing.priceRange.min)}` : ""}</p>
                     </div>
                     <div className="flex gap-1.5 shrink-0">
                       <Button

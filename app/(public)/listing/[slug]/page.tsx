@@ -120,12 +120,12 @@ export default async function ListingDetailPage({
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center p-4 bg-muted/50 rounded-xl">
                 <Users className="h-5 w-5 text-primary mx-auto mb-1" />
-                <div className="font-semibold text-foreground">{property.capacity.min}–{property.capacity.max}</div>
+                <div className="font-semibold text-foreground">{property.capacity?.max ? `Up to ${property.capacity.max}` : "—"}</div>
                 <div className="text-xs text-muted-foreground">Guests</div>
               </div>
               <div className="text-center p-4 bg-muted/50 rounded-xl">
                 <div className="font-semibold text-foreground text-sm">
-                  {formatCurrency(property.priceRange.min)}
+                  {property.priceRange?.min ? formatCurrency(property.priceRange.min) : "Contact for pricing"}
                 </div>
                 <div className="text-xs text-muted-foreground">Starting from</div>
               </div>
@@ -223,9 +223,9 @@ export default async function ListingDetailPage({
                 <div className="mb-4">
                   <div className="text-sm text-muted-foreground">Starting from</div>
                   <div className="text-3xl font-bold text-primary">
-                    {formatCurrency(property.priceRange.min)}
+                    {property.priceRange?.min ? formatCurrency(property.priceRange.min) : "Contact for pricing"}
                   </div>
-                  {property.priceRange.max > property.priceRange.min && (
+                  {property.priceRange?.max && property.priceRange.max > (property.priceRange.min ?? 0) && (
                     <div className="text-sm text-muted-foreground">
                       Up to {formatCurrency(property.priceRange.max)}
                     </div>
