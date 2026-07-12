@@ -78,7 +78,7 @@ export function ListingGallery({
         {/* Thumbnails (desktop only) */}
         {images.slice(1, 3).map((img, i) => (
           <div
-            key={img.publicId}
+            key={img.publicId || img.url}
             className="hidden sm:block relative cursor-pointer group"
             onClick={() => setActive(i + 1)}
           >

@@ -29,7 +29,7 @@ export function FarmhouseCard({ property, index = 0, onInquire }: FarmhouseCardP
   const [imgError, setImgError] = useState(false);
   const [inquiryOpen, setInquiryOpen] = useState(false);
 
-  const thumbnail = property.images?.[0]?.url;
+  const thumbnail = property.images?.[0]?.url ?? property.externalImageUrls?.[0];
   const isFeatured = (property.rating ?? 0) >= 4;
 
   return (

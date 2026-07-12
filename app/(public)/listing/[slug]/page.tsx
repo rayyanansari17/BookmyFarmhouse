@@ -39,7 +39,7 @@ export async function generateMetadata({
   if (!property) return { title: "Venue Not Found" };
 
   const city = property.location.city.charAt(0).toUpperCase() + property.location.city.slice(1);
-  const thumbnail = property.images?.[0]?.url;
+  const thumbnail = property.images?.[0]?.url ?? property.externalImageUrls?.[0];
 
   return {
     title: `${property.title} — ${city}`,
@@ -65,6 +65,11 @@ export default async function ListingDetailPage({
   const city = property.location.city.charAt(0).toUpperCase() + property.location.city.slice(1);
   const baseUrl = process.env.NEXTAUTH_URL ?? "https://bookmyfarmhouse.app";
 
+  // For scraped listings: merge external photo URLs into the images array so the gallery works
+  const galleryImages = property.images?.length
+    ? property.images
+    : (property.externalImageUrls ?? []).map((url, i) => ({ url, publicId: url, order: i }));
+
   return (
     <div className="pt-16 md:pt-20 bg-background min-h-screen">
       <JsonLd schema={buildLocalBusinessSchema(property, baseUrl)} />
@@ -84,7 +89,7 @@ export default async function ListingDetailPage({
         </Link>
 
         {/* Gallery */}
-        <ListingGallery images={property.images} title={property.title} />
+        <ListingGallery images={galleryImages} title={property.title} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
           {/* Main content */}

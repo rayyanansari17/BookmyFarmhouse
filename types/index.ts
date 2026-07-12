@@ -75,6 +75,7 @@ export interface IProperty {
   googlePlaceId?: string;
   scrapedPhone?: string;
   scrapedWebsite?: string;
+  externalImageUrls?: string[];
   createdAt: string;
   updatedAt: string;
 }
