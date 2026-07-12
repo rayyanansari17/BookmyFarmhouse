@@ -25,6 +25,10 @@ export async function getBrowser(): Promise<Browser> {
         "--disable-dev-shm-usage",
         "--disable-accelerated-2d-canvas",
         "--disable-gpu",
+        "--disable-http2",                    // force HTTP/1.1 — avoids ERR_HTTP2_PROTOCOL_ERROR on sites that drop HTTP/2 from datacenter IPs
+        "--disable-blink-features=AutomationControlled",
+        "--disable-features=VizDisplayCompositor",
+        "--window-size=1366,768",
       ],
     });
   }

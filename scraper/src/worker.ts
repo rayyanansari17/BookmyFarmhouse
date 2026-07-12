@@ -36,22 +36,15 @@ scrapeQueue.process(async (job) => {
   try {
     let venues: Awaited<ReturnType<typeof scrapeJustdial>> = [];
 
-    if (source === "justdial") {
-      venues = await scrapeJustdial(query, city, limit, async (found, total) => {
-        const progress = Math.round((found / Math.max(total, 1)) * 100);
-        await patchProgress(callbackUrl, jobId, {
-          found,
-          progress,
-          logEntry: `Scraped ${found}/${total}`,
-        });
-      });
-    } else {
-      // Sulekha / WedMeGood — not yet implemented, mark as failed
+    // All sources use the Google Maps scraper (most reliable on Railway IPs)
+    venues = await scrapeJustdial(query, city, limit, async (found, total) => {
+      const progress = Math.round((found / Math.max(total, 1)) * 100);
       await patchProgress(callbackUrl, jobId, {
-        error: `Scraper for source "${source}" is not yet implemented`,
+        found,
+        progress,
+        logEntry: `Scraped ${found}/${total}`,
       });
-      return;
-    }
+    });
 
     // Push results back to Vercel
     await axios.post(
