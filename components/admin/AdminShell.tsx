@@ -7,6 +7,7 @@ import { useSession, signOut } from "next-auth/react";
 import {
   LayoutDashboard, Clock, Building2, Users, MessageSquare,
   BarChart3, MapPin, LogOut, Menu, X, ChevronRight, ScanSearch, ExternalLink,
+  Activity, ScrollText, Database,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,9 @@ const NAV_ITEMS = [
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/settings/locations", label: "Locations", icon: MapPin },
   { href: "/admin/scraper", label: "Scraper", icon: ScanSearch },
+  { href: "/admin/activity", label: "Activity Log", icon: Activity },
+  { href: "/admin/system-logs", label: "System Logs", icon: ScrollText },
+  { href: "/admin/system-stats", label: "System Stats", icon: Database },
 ];
 
 function NavItem({ href, label, icon: Icon, exact, onClick }: {

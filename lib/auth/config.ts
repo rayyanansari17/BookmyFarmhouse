@@ -4,6 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { connectDB } from "@/lib/db/mongoose";
 import User from "@/lib/db/models/User.model";
 import bcrypt from "bcryptjs";
+import { logApiRequest } from "@/lib/services/request-log.service";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
@@ -138,6 +139,48 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.profileImage = token.profileImage as string | undefined;
       session.user.about = token.about as string | undefined;
       return session;
+    },
+  },
+
+  events: {
+    signIn: async ({ user, account }) => {
+      // Only log credential/google logins (not OAuth token refreshes)
+      if (!account || !["credentials", "google"].includes(account.provider)) return;
+      try {
+        const u = user as unknown as Record<string, unknown>;
+        await logApiRequest({
+          action: "LOGIN",
+          method: "POST",
+          path: `/api/auth/callback/${account.provider}`,
+          status: 200,
+          userId: String(u.id ?? user.id ?? ""),
+          userName: user.name ?? null,
+          userEmail: user.email ?? null,
+          userRole: (u.role as string | undefined) ?? null,
+          ipAddress: null,
+        });
+      } catch (err) {
+        console.error("[auth-event signIn]", err);
+      }
+    },
+
+    signOut: async (params) => {
+      const token = "token" in params ? params.token : null;
+      try {
+        await logApiRequest({
+          action: "LOGOUT",
+          method: "POST",
+          path: "/api/auth/signout",
+          status: 200,
+          userId: (token?.sub as string | undefined) ?? null,
+          userName: (token?.name as string | undefined) ?? null,
+          userEmail: (token?.email as string | undefined) ?? null,
+          userRole: (token?.role as string | undefined) ?? null,
+          ipAddress: null,
+        });
+      } catch (err) {
+        console.error("[auth-event signOut]", err);
+      }
     },
   },
 });
