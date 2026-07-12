@@ -148,21 +148,63 @@ export async function scrapeJustdial(
           (el) => el.textContent?.trim() ?? ""
         ).catch(() => "");
 
-        // Photo — prefer full-size from detail page, fall back to thumbnail
-        let photoUrl = cardInfo.photoUrl ?? "";
-        const photoSelectors = [
-          'img[src*="googleusercontent.com"][class*="Liguzb"]',
-          'img[src*="googleusercontent.com"][width="408"]',
-          'button[aria-label*="Photo"] img[src*="googleusercontent.com"]',
-          'img[src*="googleusercontent.com"]',
-        ];
-        for (const sel of photoSelectors) {
-          const src = await page.$eval(sel, (el) => (el as HTMLImageElement).src).catch(() => "");
-          if (src && src.includes("googleusercontent.com") && !src.includes("=s40") && !src.includes("=s16")) {
-            photoUrl = upgradePhotoUrl(src);
-            break;
+        // ── Photos: collect all visible on main page, then open Photos tab for more ──
+        const collectPhotos = async (): Promise<string[]> => {
+          const srcs = await page.$$eval(
+            'img[src*="googleusercontent.com"]',
+            (imgs) =>
+              (imgs as HTMLImageElement[])
+                .map((img) => img.src)
+                .filter(
+                  (s) =>
+                    s.length > 60 &&
+                    !s.includes("=s16") &&
+                    !s.includes("=s32") &&
+                    !s.includes("=s40") &&
+                    !s.includes("=s80") &&
+                    !s.includes("-c0x")  // profile/icon images
+                )
+          ).catch(() => [] as string[]);
+          return [...new Set(srcs.map(upgradePhotoUrl))];
+        };
+
+        let photoUrls = await collectPhotos();
+
+        // If we got fewer than 3 photos, try clicking the "Photos" tab to open the gallery
+        if (photoUrls.length < 3) {
+          const tabSelectors = [
+            'button[aria-label*="Photo" i]',
+            'button[jsaction*="pane.heroHeaderImage.click"]',
+            '[data-tab-index] button:has(img[src*="googleusercontent.com"])',
+          ];
+          for (const sel of tabSelectors) {
+            const clicked = await page.$(sel).then(async (el) => {
+              if (!el) return false;
+              await el.click();
+              return true;
+            }).catch(() => false);
+
+            if (clicked) {
+              await randomDelay(1500, 2500);
+              // Scroll the photo grid to trigger lazy loading
+              for (let s = 0; s < 4; s++) {
+                await page.evaluate(() => window.scrollBy(0, 400)).catch(() => {});
+                await randomDelay(500, 800);
+              }
+              const galleryPhotos = await collectPhotos();
+              photoUrls = [...new Set([...photoUrls, ...galleryPhotos])];
+              break;
+            }
           }
         }
+
+        // Fallback to thumbnail scraped from the feed card
+        if (photoUrls.length === 0 && cardInfo.photoUrl) {
+          photoUrls = [cardInfo.photoUrl];
+        }
+
+        // Cap at 15 photos per venue
+        photoUrls = photoUrls.slice(0, 15);
 
         const rating = ratingText ? parseFloat(ratingText) : undefined;
 
@@ -173,7 +215,7 @@ export async function scrapeJustdial(
           address: cleanAddr,
           phone: phone || undefined,
           phones: phone ? [phone] : [],
-          imageUrls: photoUrl ? [photoUrl] : [],
+          imageUrls: photoUrls,
           amenities: [],
           category: "farmhouse",
           sourceUrl: url,
