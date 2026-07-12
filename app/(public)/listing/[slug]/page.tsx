@@ -237,10 +237,17 @@ export default async function ListingDetailPage({
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-5">
-                  <Users className="h-4 w-4 text-primary" />
-                  <span>{property.capacity.min}–{property.capacity.max} guests capacity</span>
-                </div>
+                {(property.capacity?.min || property.capacity?.max) && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-5">
+                    <Users className="h-4 w-4 text-primary" />
+                    <span>
+                      {property.capacity.min && property.capacity.max
+                        ? `${property.capacity.min}–${property.capacity.max} guests`
+                        : `Up to ${property.capacity.max ?? property.capacity.min} guests`}
+                      {" "}capacity
+                    </span>
+                  </div>
+                )}
 
                 <InquiryTrigger property={property} />
 
