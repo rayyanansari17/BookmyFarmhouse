@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
   LayoutDashboard,
@@ -14,6 +14,7 @@ import {
   X,
   LogOut,
   ChevronRight,
+  Zap,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { href: "/vendor/listings/new", label: "Add Listing", icon: Plus },
   { href: "/vendor/leads", label: "Leads", icon: MessageSquare },
   { href: "/vendor/profile", label: "Profile", icon: User },
+  { href: "/vendor/upgrade", label: "Upgrade Plan", icon: Zap },
 ];
 
 function NavItem({
@@ -130,8 +132,23 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
 
 export function VendorShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace(`/vendor/login?callbackUrl=${encodeURIComponent(pathname)}`);
+    }
+  }, [status, pathname, router]);
+
+  if (status === "loading" || status === "unauthenticated") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const currentItem = NAV_ITEMS.find((i) => {
     const excluded = i.excludes?.some((p) => pathname.startsWith(p)) ?? false;

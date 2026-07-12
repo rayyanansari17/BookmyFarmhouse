@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import {
-  MapPin, Users, Star, CheckCircle, Shield, Phone, Mail, Building2, ArrowLeft,
+  MapPin, Users, Star, CheckCircle, Shield, Phone, Mail, ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -85,25 +85,6 @@ export default async function ListingDetailPage({
 
         {/* Gallery */}
         <ListingGallery images={property.images} title={property.title} />
-
-        {/* Claim banner — only for unclaimed scraped listings */}
-        {property.source === "scraped" && !property.claimed && (
-          <div className="mt-6 flex items-start gap-4 rounded-xl border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-950/20 p-4">
-            <Building2 className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-foreground text-sm">Is this your venue?</p>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Claim this listing to manage photos, respond to enquiries, and access leads.
-              </p>
-            </div>
-            <Link
-              href={`/become-vendor?claim=${property._id}`}
-              className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-orange-500 bg-background px-3 py-1.5 text-sm font-medium text-orange-600 transition-colors hover:bg-orange-50 dark:hover:bg-orange-950/30"
-            >
-              Claim this listing →
-            </Link>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
           {/* Main content */}

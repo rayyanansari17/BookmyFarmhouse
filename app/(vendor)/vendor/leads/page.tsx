@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Search, Phone, Mail, Calendar, Users, Lock, Loader2, ArrowUpRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ interface LeadWithName extends Omit<IInquiry, "customer"> {
 }
 
 export default function LeadsDashboard() {
+  const router = useRouter();
   const [leads, setLeads] = useState<LeadWithName[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -83,7 +85,7 @@ export default function LeadsDashboard() {
           description: data.message,
           action: {
             label: "Upgrade",
-            onClick: () => window.open("/vendor/upgrade", "_blank"),
+            onClick: () => router.push("/vendor/upgrade"),
           },
           duration: 6000,
         });
