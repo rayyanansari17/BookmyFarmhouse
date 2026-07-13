@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import {
   CheckCircle, XCircle, Pencil, ChevronLeft, ChevronRight,
-  MapPin, ArrowLeft, AlertTriangle, LayoutGrid, List, Trash2,
+  MapPin, ArrowLeft, AlertTriangle, LayoutGrid, List, Trash2, Loader2, Filter,
 } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
@@ -73,7 +74,10 @@ function Checkbox({ checked, onChange }: { checked: boolean; onChange: () => voi
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function ReviewPage() {
+function ReviewPageInner() {
+  const searchParams = useSearchParams();
+  const jobId = searchParams.get("jobId") ?? undefined;
+
   const [listings, setListings] = useState<ScrapedListing[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -84,7 +88,6 @@ export default function ReviewPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [imageIndexes, setImageIndexes] = useState<Record<string, number>>({});
   const [editingListing, setEditingListing] = useState<ScrapedListing | null>(null);
-  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [bulkWorking, setBulkWorking] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -97,13 +100,14 @@ export default function ReviewPage() {
     if (statusFilter !== "all") params.set("status", statusFilter);
     if (sourceFilter !== "all") params.set("source", sourceFilter);
     if (search) params.set("search", search);
+    if (jobId) params.set("jobId", jobId);
     params.set("page", String(page));
     params.set("limit", String(LIMIT));
     const res = await fetch(`/api/admin/scraper/scraped?${params}`);
     const data = await res.json();
     if (data.success) { setListings(data.data); setTotal(data.total); }
     setLoading(false);
-  }, [statusFilter, sourceFilter, search, page]);
+  }, [statusFilter, sourceFilter, search, page, jobId]);
 
   useEffect(() => { fetchListings(); }, [fetchListings]);
 
@@ -131,31 +135,53 @@ export default function ReviewPage() {
   const nextImage = (id: string, max: number) =>
     setImageIndexes((p) => ({ ...p, [id]: ((p[id] ?? 0) + 1) % max }));
 
-  const bulkAction = async (action: "approve" | "reject") => {
+  const bulkReject = async () => {
     if (selectedIds.size === 0) return;
     setBulkWorking(true);
-    const res = await fetch(`/api/admin/scraper/scraped/bulk-${action}`, {
+    const res = await fetch("/api/admin/scraper/scraped/bulk-reject", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids: Array.from(selectedIds) }),
     });
     const data = await res.json();
-    if (data.success) { showToast(`${data.modified} listings ${action}d`); clearSelection(); fetchListings(); }
+    if (data.success) { showToast(`${data.modified} listings rejected`); clearSelection(); fetchListings(); }
     else showToast(data.error ?? "Failed", false);
     setBulkWorking(false);
   };
 
-  const handlePublish = async () => {
+  const bulkApproveAndPublish = async () => {
+    if (selectedIds.size === 0) return;
     setBulkWorking(true);
-    const res = await fetch("/api/admin/scraper/scraped/bulk-publish", {
+    const ids = Array.from(selectedIds);
+
+    // Step 1 — approve all selected
+    const approveRes = await fetch("/api/admin/scraper/scraped/bulk-approve", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      body: JSON.stringify({ ids }),
     });
-    const data = await res.json();
-    setShowPublishConfirm(false);
-    if (data.success) { showToast(`Published ${data.published}, skipped ${data.skipped}`); clearSelection(); fetchListings(); }
-    else showToast(data.error ?? "Publish failed", false);
+    const approveData = await approveRes.json();
+    if (!approveData.success) {
+      showToast(approveData.error ?? "Approve step failed", false);
+      setBulkWorking(false);
+      return;
+    }
+
+    // Step 2 — publish (now that they are approved)
+    const publishRes = await fetch("/api/admin/scraper/scraped/bulk-publish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+    const publishData = await publishRes.json();
+    if (publishData.success) {
+      const msg = `Published ${publishData.published}${publishData.skipped ? `, ${publishData.skipped} skipped (already live)` : ""}`;
+      showToast(msg);
+      clearSelection();
+      fetchListings();
+    } else {
+      showToast(publishData.error ?? "Publish step failed", false);
+    }
     setBulkWorking(false);
   };
 
@@ -223,12 +249,17 @@ export default function ReviewPage() {
 
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Link href="/admin/scraper" className="text-muted-foreground hover:text-foreground transition-colors">
+          <Link
+            href={jobId ? `/admin/scraper/jobs/${jobId}` : "/admin/scraper"}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground">Review Scraped Listings</h1>
-            <p className="text-sm text-muted-foreground">{total} listing{total !== 1 ? "s" : ""} total</p>
+            <h1 className="text-2xl font-bold text-foreground">
+              {jobId ? "Job Results" : "Scraped Listings"}
+            </h1>
+            <p className="text-sm text-muted-foreground">{total} listing{total !== 1 ? "s" : ""}{jobId ? " from this job" : " total"}</p>
           </div>
           {/* View toggle */}
           <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
@@ -248,6 +279,20 @@ export default function ReviewPage() {
             </button>
           </div>
         </div>
+
+        {/* Job filter banner */}
+        {jobId && (
+          <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-xl px-4 py-2.5">
+            <Filter className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-sm font-medium text-primary">Showing results from one scrape job only</span>
+            <Link
+              href="/admin/scraper/review"
+              className="ml-auto text-xs text-muted-foreground hover:text-foreground underline shrink-0"
+            >
+              View all scraped listings
+            </Link>
+          </div>
+        )}
 
         {/* Filters row */}
         <div className="flex flex-wrap gap-3 items-center">
@@ -282,16 +327,15 @@ export default function ReviewPage() {
             <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
             <button onClick={clearSelection} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Clear</button>
             <div className="flex gap-2 ml-auto flex-wrap">
-              <Button size="sm" variant="outline" disabled={bulkWorking} onClick={() => bulkAction("approve")}
-                className="text-green-700 border-green-300 hover:bg-green-50 dark:text-green-400 dark:border-green-700 gap-1.5">
-                <CheckCircle className="h-3.5 w-3.5" /> Approve ({selectedIds.size})
-              </Button>
-              <Button size="sm" variant="outline" disabled={bulkWorking} onClick={() => bulkAction("reject")}
+              <Button size="sm" variant="outline" disabled={bulkWorking} onClick={bulkReject}
                 className="text-red-700 border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-700 gap-1.5">
                 <XCircle className="h-3.5 w-3.5" /> Reject ({selectedIds.size})
               </Button>
-              <Button size="sm" disabled={bulkWorking} onClick={() => setShowPublishConfirm(true)}>
-                Publish {selectedIds.size} to live site →
+              <Button size="sm" disabled={bulkWorking} onClick={bulkApproveAndPublish} className="gap-1.5">
+                {bulkWorking
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <CheckCircle className="h-3.5 w-3.5" />}
+                Approve & Publish {selectedIds.size} →
               </Button>
             </div>
           </div>
@@ -502,26 +546,18 @@ export default function ReviewPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Publish confirm */}
-      <Dialog open={showPublishConfirm} onOpenChange={setShowPublishConfirm}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Publish {selectedIds.size} listings to live site?</DialogTitle></DialogHeader>
-          <div className="text-sm text-muted-foreground space-y-2">
-            <p>These listings will appear on BookMyFarmhouse immediately and be indexed by Google.</p>
-            <ul className="list-disc list-inside space-y-1 mt-2">
-              <li>Only &quot;approved&quot; listings will be published</li>
-              <li>Duplicate phone numbers will be skipped</li>
-              <li>Each listing gets its own SEO-friendly URL</li>
-            </ul>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPublishConfirm(false)}>Cancel</Button>
-            <Button disabled={bulkWorking} onClick={handlePublish}>
-              {bulkWorking ? "Publishing…" : `Publish ${selectedIds.size} listings →`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
+  );
+}
+
+export default function ReviewPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    }>
+      <ReviewPageInner />
+    </Suspense>
   );
 }

@@ -5,11 +5,14 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Search, CheckSquare, Square, Loader2, Globe, MapPin,
-  CheckCircle2, PlusCircle, X, Upload, Eye, Zap, ExternalLink,
+  CheckCircle2, PlusCircle, X, Upload, Eye, Zap, ExternalLink, RotateCcw, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +35,36 @@ const KEYWORD_OPTIONS = [
   { value: "event venue", label: "Event Venue" },
   { value: "resort for events", label: "Resort for Events" },
 ];
+
+// Popular farmhouse hotspot areas per city
+const CITY_HOTSPOTS: Record<string, string[]> = {
+  "Hyderabad":  ["Shamshabad", "Chevella", "Shankarpally", "Medchal", "Vikarabad", "Yadagirigutta", "Tandur"],
+  "Bangalore":  ["Devanahalli", "Kanakapura", "Doddaballapur", "Nandi Hills", "Hoskote", "Tumkur Road"],
+  "Mumbai":     ["Karjat", "Lonavala", "Alibaug", "Wada", "Murbad", "Khopoli", "Panvel"],
+  "Delhi":      ["Manesar", "Sohna", "Faridabad", "Kundli", "Murthal", "Ballabhgarh"],
+  "Chennai":    ["ECR", "Mahabalipuram", "Chengalpattu", "Poonamallee", "Guduvanchery"],
+  "Pune":       ["Lonavala", "Kamshet", "Mulshi", "Tamhini", "Lavasa", "Shirval"],
+  "Jaipur":     ["Amer", "Chomu", "Achrol", "Mansarovar", "Dudu", "Kotputli"],
+  "Kolkata":    ["Rajarhat", "Baruipur", "Sonarpur", "Bishnupur", "Barasat"],
+  "Ahmedabad":  ["Gandhinagar", "Sanand", "Bavla", "Dholka", "Anand"],
+  "Gurgaon":    ["Sohna Road", "Pataudi", "Farrukhnagar", "Manesar", "Rewari"],
+  "Noida":      ["Greater Noida", "Yamuna Expressway", "Dadri", "Jewar", "Bulandshahr"],
+  "Chandigarh": ["Morni Hills", "Panchkula", "Mullanpur", "Zirakpur", "Mohali"],
+  "Lucknow":    ["Chinhat", "Malihabad", "Gomti Nagar", "Unnao", "Barabanki"],
+  "Indore":     ["Mhow", "Sanwer", "Dewas", "Pithampur", "Rau"],
+  "Bhopal":     ["Mandideep", "Obedullaganj", "Berasia", "Raisen", "Vidisha"],
+};
+
+function parseGoogleMapsUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    const pathMatch = u.pathname.match(/\/maps\/search\/([^/@]+)/);
+    if (pathMatch) return decodeURIComponent(pathMatch[1].replace(/\+/g, " "));
+    const q = u.searchParams.get("q");
+    if (q) return q;
+  } catch { /* ignore */ }
+  return "";
+}
 
 const BLANK_MANUAL: PlaceResult = {
   placeId: "", name: "", address: "", city: "", phone: "", website: "", types: [],
@@ -61,9 +94,12 @@ export default function ScraperPage() {
   // Start Scrape state
   const [scrapeSource, setScrapeSource] = useState("justdial");
   const [scrapeCity, setScrapeCity] = useState("");
-  const [scrapeQuery, setScrapeQuery] = useState("farmhouses");
+  const [scrapeArea, setScrapeArea] = useState("");
+  const [scrapeQueries, setScrapeQueries] = useState("farmhouses\nfarm stays\nvilla for events");
   const [scrapeLimit, setScrapeLimit] = useState(50);
   const [scraping, setScraping] = useState(false);
+  const [scrapingProgress, setScrapingProgress] = useState("");
+  const [startUrl, setStartUrl] = useState("");
   const [recentJobs, setRecentJobs] = useState<ScrapeJob[]>([]);
 
   // OSM scraper state
@@ -83,6 +119,10 @@ export default function ScraperPage() {
   const [importing, setImporting] = useState(false);
   const [importDone, setImportDone] = useState<{ created: number; skipped: number } | null>(null);
 
+  // Reset state
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
   // File upload ref
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -101,27 +141,60 @@ export default function ScraperPage() {
 
   async function handleStartScrape() {
     if (!scrapeCity) { toast.error("Select a city first"); return; }
-    if (!scrapeQuery.trim()) { toast.error("Enter a search query"); return; }
+
+    // Parse query lines
+    const lines = scrapeQueries
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+    // If a custom source URL is given, prepend its parsed query as the first line
+    if (startUrl.trim()) {
+      const parsed = parseGoogleMapsUrl(startUrl.trim());
+      if (parsed && !lines.some((l) => l === parsed)) lines.unshift(parsed);
+    }
+
+    if (lines.length === 0) { toast.error("Enter at least one search query"); return; }
+
     setScraping(true);
-    try {
-      const res = await fetch("/api/admin/scraper/jobs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source: scrapeSource,
-          query: scrapeQuery,
-          city: scrapeCity.toLowerCase(),
-          limit: scrapeLimit,
-        }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-      toast.success("Scrape job created — redirecting to progress page");
-      router.push(`/admin/scraper/jobs/${data.data._id}`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to start scrape");
-    } finally {
-      setScraping(false);
+    const createdIds: string[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const rawQuery = lines[i];
+      // Append area to query so scraper searches in that neighbourhood
+      const query = scrapeArea.trim() ? `${rawQuery} ${scrapeArea.trim()}` : rawQuery;
+      setScrapingProgress(`Creating job ${i + 1}/${lines.length}…`);
+      try {
+        const res = await fetch("/api/admin/scraper/jobs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            source: scrapeSource,
+            query,
+            city: scrapeCity.toLowerCase(),
+            limit: scrapeLimit,
+          }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        createdIds.push(data.data._id);
+      } catch (err) {
+        toast.error(`"${rawQuery}": ${err instanceof Error ? err.message : "failed"}`);
+      }
+    }
+
+    setScraping(false);
+    setScrapingProgress("");
+
+    if (createdIds.length === 1) {
+      toast.success("Scrape job created — opening progress page");
+      router.push(`/admin/scraper/jobs/${createdIds[0]}`);
+    } else if (createdIds.length > 1) {
+      toast.success(`${createdIds.length} scrape jobs created`);
+      fetch("/api/admin/scraper/jobs?limit=5")
+        .then((r) => r.json())
+        .then((d) => { if (d.success) setRecentJobs(d.data); })
+        .catch(() => {});
     }
   }
 
@@ -275,6 +348,22 @@ export default function ScraperPage() {
     }
   }
 
+  async function handleReset() {
+    setResetting(true);
+    try {
+      const res = await fetch("/api/admin/scraper/reset", { method: "DELETE" });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      toast.success(`Reset complete — cleared ${data.deletedListings} listings and ${data.deletedJobs} jobs`);
+      setShowResetDialog(false);
+      setRecentJobs([]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Reset failed");
+    } finally {
+      setResetting(false);
+    }
+  }
+
   function toggleAll() {
     if (selected.size === results.length) setSelected(new Set());
     else setSelected(new Set(results.map((r) => r.placeId)));
@@ -313,14 +402,52 @@ export default function ScraperPage() {
             Import real Google Maps venues, search OpenStreetMap, or add manually
           </p>
         </div>
-        <a
-          href="/admin/scraper/review"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-        >
-          Review Scraped Listings
-          <ExternalLink className="h-3.5 w-3.5" />
-        </a>
+        <div className="flex items-center gap-3">
+          <a
+            href="/admin/scraper/review"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+          >
+            Review Scraped Listings
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+            onClick={() => setShowResetDialog(true)}
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Reset Scraper
+          </Button>
+        </div>
       </div>
+
+      {/* Reset confirmation dialog */}
+      <Dialog open={showResetDialog} onOpenChange={(o) => !o && setShowResetDialog(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Reset Scraper?
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground mt-2 space-y-2">
+              <span className="block">This will permanently delete:</span>
+              <span className="block pl-3 text-foreground font-medium">• All scraped listings (pending, approved, rejected)</span>
+              <span className="block pl-3 text-foreground font-medium">• All scrape job history</span>
+              <span className="block mt-2 text-green-700 dark:text-green-400 font-medium">✓ Published listings on the site are not affected.</span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-2">
+            <Button variant="outline" onClick={() => setShowResetDialog(false)} disabled={resetting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleReset} disabled={resetting}>
+              {resetting && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+              Reset Scraper
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Tabs defaultValue="scrape">
         <TabsList className="mb-4">
@@ -339,7 +466,8 @@ export default function ScraperPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Launch a Scrape Job</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5">
+
               {/* Source buttons */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Source</label>
@@ -364,11 +492,11 @@ export default function ScraperPage() {
                 </div>
               </div>
 
+              {/* City + Area */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* City */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">City</label>
-                  <Select value={scrapeCity} onValueChange={(v) => v && setScrapeCity(v)}>
+                  <Select value={scrapeCity} onValueChange={(v) => { if (v) { setScrapeCity(v); setScrapeArea(""); } }}>
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="Select city" />
                     </SelectTrigger>
@@ -380,23 +508,108 @@ export default function ScraperPage() {
                   </Select>
                 </div>
 
-                {/* Query */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Query</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Area / Neighbourhood <span className="font-normal normal-case">(optional)</span>
+                  </label>
                   <input
                     type="text"
-                    value={scrapeQuery}
-                    onChange={(e) => setScrapeQuery(e.target.value)}
-                    placeholder="farmhouses in Hyderabad"
+                    value={scrapeArea}
+                    onChange={(e) => setScrapeArea(e.target.value)}
+                    placeholder="e.g. Shamshabad, ECR, Kanakapura…"
                     className="w-full h-9 px-3 rounded-md border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
               </div>
 
+              {/* Hotspot chips */}
+              {scrapeCity && CITY_HOTSPOTS[scrapeCity] && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Farmhouse Hotspots in {scrapeCity}
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {CITY_HOTSPOTS[scrapeCity].map((area) => (
+                      <button
+                        key={area}
+                        onClick={() => setScrapeArea((prev) => prev === area ? "" : area)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                          scrapeArea === area
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-border text-muted-foreground hover:border-primary hover:text-foreground"
+                        }`}
+                      >
+                        {area}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Multi-line query textarea */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Search Queries <span className="font-normal normal-case text-muted-foreground">(one per line — each creates a separate job)</span>
+                </label>
+                <Textarea
+                  value={scrapeQueries}
+                  onChange={(e) => setScrapeQueries(e.target.value)}
+                  placeholder={"farmhouses\nfarm stays\nvilla for events\nresort for party"}
+                  rows={5}
+                  className="font-mono text-sm resize-y"
+                />
+                {scrapeQueries.split("\n").filter((l) => l.trim()).length > 1 && (
+                  <p className="text-xs text-primary font-medium">
+                    {scrapeQueries.split("\n").filter((l) => l.trim()).length} queries → {scrapeQueries.split("\n").filter((l) => l.trim()).length} jobs will be created
+                  </p>
+                )}
+              </div>
+
+              {/* Custom source URL */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Custom Source URL <span className="font-normal normal-case text-muted-foreground">(optional — paste a Google Maps search URL)</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={startUrl}
+                    onChange={(e) => setStartUrl(e.target.value)}
+                    placeholder="https://www.google.com/maps/search/farmhouses+near+Shamshabad"
+                    className="flex-1 h-9 px-3 rounded-md border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-3 shrink-0 text-xs"
+                    disabled={!startUrl.trim()}
+                    onClick={() => {
+                      const parsed = parseGoogleMapsUrl(startUrl.trim());
+                      if (parsed) {
+                        setScrapeQueries((prev) => {
+                          const existing = prev.split("\n").map((l) => l.trim()).filter(Boolean);
+                          return existing.includes(parsed) ? prev : [...existing, parsed].join("\n");
+                        });
+                        toast.success(`Added "${parsed}" to queries`);
+                        setStartUrl("");
+                      } else {
+                        toast.error("Couldn't parse a search query from that URL");
+                      }
+                    }}
+                  >
+                    Add to Queries
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  The search term is extracted from the URL and added as a new query line above.
+                </p>
+              </div>
+
               {/* Limit slider */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Limit — {scrapeLimit} listings
+                  Limit — {scrapeLimit} listings per job
                 </label>
                 <input
                   type="range"
@@ -412,17 +625,27 @@ export default function ScraperPage() {
                 </div>
               </div>
 
-              <Button
-                onClick={handleStartScrape}
-                disabled={scraping || !scrapeCity}
-                className="gap-2"
-              >
-                {scraping ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                {scraping ? "Creating job…" : "Start Scrape"}
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={handleStartScrape}
+                  disabled={scraping || !scrapeCity}
+                  className="gap-2"
+                >
+                  {scraping ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                  {scraping
+                    ? (scrapingProgress || "Creating jobs…")
+                    : (() => {
+                        const n = scrapeQueries.split("\n").filter((l) => l.trim()).length;
+                        return n > 1 ? `Start ${n} Scrape Jobs` : "Start Scrape";
+                      })()}
+                </Button>
+                {scraping && (
+                  <span className="text-xs text-muted-foreground">{scrapingProgress}</span>
+                )}
+              </div>
 
               <p className="text-xs text-muted-foreground">
-                Requires the Railway scraper service to be running. Jobs are queued asynchronously — you&apos;ll be redirected to the progress page.
+                Requires the Railway scraper service to be running. Jobs are queued asynchronously.
               </p>
             </CardContent>
           </Card>

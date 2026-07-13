@@ -31,10 +31,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { city } = await params;
   const cityName = city.charAt(0).toUpperCase() + city.slice(1);
-  const base = process.env.NEXTAUTH_URL ?? "https://bookmyfarmhouse.app";
+  const base = process.env.SITE_URL ?? "https://bookmyfarmhouse.app";
 
   return {
-    title: `Farmhouses in ${cityName} — Book the Best Venues | BookMyFarmhouse`,
+    title: { absolute: `Farmhouses in ${cityName} — Book the Best Venues | BookMyFarmhouse` },
     description: `Browse top farmhouses in ${cityName} for parties, weddings, and corporate events. Compare prices, view photos, check amenities. Free to inquire — no booking fees.`,
     alternates: {
       canonical: `${base}/farmhouses-in-${city}`,
@@ -89,7 +89,7 @@ export default async function CityHubPage({
     .lean();
 
   const cityName = city.charAt(0).toUpperCase() + city.slice(1);
-  const base = process.env.NEXTAUTH_URL ?? "https://bookmyfarmhouse.app";
+  const base = process.env.SITE_URL ?? "https://bookmyfarmhouse.app";
 
   const priceMin = properties.reduce(
     (min, p) => (p.priceRange?.min && p.priceRange.min < min ? p.priceRange.min : min),

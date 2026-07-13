@@ -1,0 +1,27 @@
+{
+  "name": "bmf-seo-jobs",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "ts-node --project tsconfig.json src/index.ts",
+    "dev": "ts-node-dev --respawn src/index.ts"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "bull": "^4.12.2",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "googleapis": "^140.0.0",
+    "@google-analytics/data": "^4.7.0",
+    "groq-sdk": "^0.7.0",
+    "mongoose": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/bull": "^4.10.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.2",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.4.5"
+  }
+}

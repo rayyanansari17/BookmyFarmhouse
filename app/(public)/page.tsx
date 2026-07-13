@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { HeroSection } from "@/components/public/HeroSection";
 import { FeaturedSection, FeaturedSectionSkeleton } from "@/components/public/FeaturedSection";
@@ -5,6 +6,12 @@ import { WhyChooseUs } from "@/components/public/WhyChooseUs";
 import { HowItWorks } from "@/components/public/HowItWorks";
 import { CTASection } from "@/components/public/CTASection";
 import type { IProperty } from "@/types";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/",
+  },
+};
 
 // Fetch featured properties server-side with 5-minute ISR cache
 async function getFeaturedProperties(): Promise<IProperty[]> {

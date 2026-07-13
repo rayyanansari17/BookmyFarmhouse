@@ -40,14 +40,25 @@ export async function generateMetadata({
 
   const city = property.location.city.charAt(0).toUpperCase() + property.location.city.slice(1);
   const thumbnail = property.images?.[0]?.url ?? property.externalImageUrls?.[0];
+  const base = process.env.SITE_URL ?? "https://bookmyfarmhouse.app";
 
   return {
     title: `${property.title} — ${city}`,
     description: property.description?.slice(0, 160),
+    alternates: {
+      canonical: `${base}/listing/${property.slug}`,
+    },
     openGraph: {
       title: property.title,
       description: property.description?.slice(0, 160),
+      url: `${base}/listing/${property.slug}`,
       images: thumbnail ? [{ url: thumbnail, width: 1200, height: 630 }] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${property.title} — ${city}`,
+      description: property.description?.slice(0, 160) ?? "",
+      images: thumbnail ? [thumbnail] : [],
     },
   };
 }
@@ -63,7 +74,7 @@ export default async function ListingDetailPage({
 
   const vendor = property.vendorId as IUser;
   const city = property.location.city.charAt(0).toUpperCase() + property.location.city.slice(1);
-  const baseUrl = process.env.NEXTAUTH_URL ?? "https://bookmyfarmhouse.app";
+  const baseUrl = process.env.SITE_URL ?? "https://bookmyfarmhouse.app";
 
   // For scraped listings: merge external photo URLs into the images array so the gallery works
   const galleryImages = property.images?.length

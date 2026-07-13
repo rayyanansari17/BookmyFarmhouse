@@ -232,6 +232,7 @@ function SearchPageInner() {
 
   return (
     <div className="pt-16 md:pt-20 min-h-screen bg-background">
+      <h1 className="sr-only">Search Farmhouses &amp; Event Venues Across India</h1>
       {/* Top bar */}
       <div className="sticky top-16 md:top-20 z-30 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">

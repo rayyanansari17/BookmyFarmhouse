@@ -7,7 +7,7 @@ import { useSession, signOut } from "next-auth/react";
 import {
   LayoutDashboard, Clock, Building2, Users, MessageSquare,
   BarChart3, MapPin, LogOut, Menu, X, ChevronRight, ScanSearch, ExternalLink,
-  Activity, ScrollText, Database,
+  Activity, ScrollText, Database, ListChecks, FileText, TrendingUp, Search, Sparkles,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,12 @@ const NAV_ITEMS = [
   { href: "/admin/leads", label: "Leads", icon: MessageSquare },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/settings/locations", label: "Locations", icon: MapPin },
-  { href: "/admin/scraper", label: "Scraper", icon: ScanSearch },
+  { href: "/admin/scraper", label: "Scraper", icon: ScanSearch, exact: true },
+  { href: "/admin/scraper/review", label: "Scraped Listings", icon: ListChecks },
+  { href: "/admin/blog", label: "Blog Posts", icon: FileText },
+  { href: "/admin/seo", label: "SEO Dashboard", icon: TrendingUp, exact: true },
+  { href: "/admin/seo/keywords", label: "Keywords", icon: Search },
+  { href: "/admin/seo/aeo", label: "AEO Signals", icon: Sparkles },
   { href: "/admin/activity", label: "Activity Log", icon: Activity },
   { href: "/admin/system-logs", label: "System Logs", icon: ScrollText },
   { href: "/admin/system-stats", label: "System Stats", icon: Database },

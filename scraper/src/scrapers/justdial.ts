@@ -148,7 +148,9 @@ export async function scrapeJustdial(
           (el) => el.textContent?.trim() ?? ""
         ).catch(() => "");
 
-        // ── Photos: collect all visible on main page, then open Photos tab for more ──
+        // ── Photos: scroll main page to reveal lazy-loaded images, then harvest ──
+        // NOTE: Do NOT click photo tabs or navigate to gallery pages — that triggers
+        // Google's bot detection and causes CAPTCHAs that silently kill subsequent venues.
         const collectPhotos = async (): Promise<string[]> => {
           const srcs = await page.$$eval(
             'img[src*="googleusercontent.com"]',
@@ -168,43 +170,19 @@ export async function scrapeJustdial(
           return [...new Set(srcs.map(upgradePhotoUrl))];
         };
 
+        // One gentle scroll to reveal any lazy-loaded photos below the fold
+        await page.evaluate(() => window.scrollBy(0, 600)).catch(() => {});
+        await randomDelay(800, 1200);
+
         let photoUrls = await collectPhotos();
-
-        // If we got fewer than 3 photos, try clicking the "Photos" tab to open the gallery
-        if (photoUrls.length < 3) {
-          const tabSelectors = [
-            'button[aria-label*="Photo" i]',
-            'button[jsaction*="pane.heroHeaderImage.click"]',
-            '[data-tab-index] button:has(img[src*="googleusercontent.com"])',
-          ];
-          for (const sel of tabSelectors) {
-            const clicked = await page.$(sel).then(async (el) => {
-              if (!el) return false;
-              await el.click();
-              return true;
-            }).catch(() => false);
-
-            if (clicked) {
-              await randomDelay(1500, 2500);
-              // Scroll the photo grid to trigger lazy loading
-              for (let s = 0; s < 4; s++) {
-                await page.evaluate(() => window.scrollBy(0, 400)).catch(() => {});
-                await randomDelay(500, 800);
-              }
-              const galleryPhotos = await collectPhotos();
-              photoUrls = [...new Set([...photoUrls, ...galleryPhotos])];
-              break;
-            }
-          }
-        }
 
         // Fallback to thumbnail scraped from the feed card
         if (photoUrls.length === 0 && cardInfo.photoUrl) {
           photoUrls = [cardInfo.photoUrl];
         }
 
-        // Cap at 15 photos per venue
-        photoUrls = photoUrls.slice(0, 15);
+        // Cap at 10 photos per venue
+        photoUrls = photoUrls.slice(0, 10);
 
         const rating = ratingText ? parseFloat(ratingText) : undefined;
 

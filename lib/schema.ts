@@ -19,15 +19,7 @@ export function buildLocalBusinessSchema(property: IProperty, baseUrl: string) {
       addressCountry: "IN",
       ...(property.location.address && { streetAddress: property.location.address }),
     },
-    ...(property.rating && {
-      aggregateRating: {
-        "@type": "AggregateRating",
-        ratingValue: property.rating,
-        bestRating: 5,
-        worstRating: 1,
-        ratingCount: 1,
-      },
-    }),
+    // aggregateRating omitted until real review counts are tracked in the model
     ...(property.priceRange?.min && {
       priceRange: `₹${property.priceRange.min.toLocaleString("en-IN")}–₹${property.priceRange.max.toLocaleString("en-IN")}`,
     }),
@@ -70,6 +62,51 @@ export function buildFAQSchema(faqs: { q: string; a: string }[]) {
         text: a,
       },
     })),
+  };
+}
+
+// ── Organization ─────────────────────────────────────────────────────────────
+export function buildOrganizationSchema(baseUrl: string) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": `${baseUrl}/#organization`,
+    name: "BookMyFarmhouse",
+    url: baseUrl,
+    logo: {
+      "@type": "ImageObject",
+      url: `${baseUrl}/logo-light.png`,
+    },
+    sameAs: [
+      "https://x.com/bookfarmhouse",
+      "https://www.linkedin.com/company/bookmyfarmhouse/",
+    ],
+    contactPoint: {
+      "@type": "ContactPoint",
+      telephone: "+91-9573109741",
+      contactType: "customer support",
+      availableLanguage: "English",
+    },
+  };
+}
+
+// ── WebSite (enables sitelinks searchbox) ─────────────────────────────────────
+export function buildWebSiteSchema(baseUrl: string) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": `${baseUrl}/#website`,
+    url: baseUrl,
+    name: "BookMyFarmhouse",
+    publisher: { "@id": `${baseUrl}/#organization` },
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${baseUrl}/search?search={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
   };
 }
 
