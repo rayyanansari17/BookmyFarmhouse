@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
+
+export const maxDuration = 60; // Groq generation can take 20-40s
 import { connectDB } from "@/lib/db/mongoose";
 import Blog from "@/lib/db/models/Blog.model";
 import Groq from "groq-sdk";
@@ -120,27 +122,33 @@ Rules:
 - End the blog with a clear CTA paragraph to browse BookMyFarmhouse
 - Body must be full HTML, ready to render — no placeholder text`;
 
-  const completion = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    temperature: 0.7,
-    max_tokens: 4096,
-  });
+  let completion;
+  try {
+    completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 4096,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ success: false, error: `Groq error: ${msg}` }, { status: 502 });
+  }
 
   const raw = completion.choices[0]?.message?.content ?? "{}";
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    return NextResponse.json({ success: false, error: "Generation failed — invalid JSON from model" }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Generation failed — model returned no JSON", raw }, { status: 500 });
   }
 
   let generated: Record<string, unknown>;
   try {
     generated = JSON.parse(jsonMatch[0]);
   } catch {
-    return NextResponse.json({ success: false, error: "JSON parse error in generated content" }, { status: 500 });
+    return NextResponse.json({ success: false, error: "JSON parse error in generated content", raw }, { status: 500 });
   }
 
   const bodyHtml = (generated.bodyHtml as string) ?? "";

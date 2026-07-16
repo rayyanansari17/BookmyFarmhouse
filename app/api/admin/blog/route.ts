@@ -51,14 +51,25 @@ export async function POST(req: NextRequest) {
 
   const autoSlug = slug || targetKeyword.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
-  const blog = await Blog.create({
-    slug: autoSlug,
-    title: title || targetKeyword,
-    targetKeyword,
-    contentType,
-    status: "keyword_identified",
-    ...rest,
-  });
+  let blog;
+  try {
+    blog = await Blog.create({
+      slug: autoSlug,
+      title: title || targetKeyword,
+      targetKeyword,
+      contentType,
+      status: "keyword_identified",
+      ...rest,
+    });
+  } catch (err: unknown) {
+    // Duplicate slug — return the existing blog instead of erroring
+    if ((err as { code?: number }).code === 11000) {
+      const existing = await Blog.findOne({ slug: autoSlug }).lean();
+      if (existing) return NextResponse.json({ success: true, data: existing }, { status: 200 });
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true, data: blog }, { status: 201 });
 }
