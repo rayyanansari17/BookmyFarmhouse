@@ -82,22 +82,31 @@ Reason through all candidates, then output JSON only (no markdown):
   "contentType": "location-page|comparison|how-to|faq-cluster|geo-summary"
 }`;
 
-  const completion = await groq.chat.completions.create({
-    model: "deepseek-r1-distill-llama-70b",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.3,
-    max_tokens: 1024,
-  });
+  let completion;
+  try {
+    completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+      max_tokens: 1024,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ success: false, error: `Groq API error: ${msg}` }, { status: 502 });
+  }
 
   const raw = completion.choices[0]?.message?.content ?? "{}";
-  // Strip <think>...</think> blocks that deepseek-r1 emits
   const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
 
   if (!jsonMatch) {
-    return NextResponse.json({ success: false, error: "AI failed to return valid JSON" }, { status: 500 });
+    return NextResponse.json({ success: false, error: "AI did not return valid JSON", raw }, { status: 500 });
   }
 
-  const result = JSON.parse(jsonMatch[0]);
-  return NextResponse.json({ success: true, data: result });
+  try {
+    const result = JSON.parse(jsonMatch[0]);
+    return NextResponse.json({ success: true, data: result });
+  } catch {
+    return NextResponse.json({ success: false, error: "Failed to parse AI JSON", raw }, { status: 500 });
+  }
 }
