@@ -14,7 +14,8 @@ async function getBlog(slug: string) {
 
 async function getRelatedBlogs(slug: string, contentType: string) {
   await connectDB();
-  return Blog.find({ status: "published", slug: { $ne: slug }, contentType })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return Blog.find({ status: "published" as any, slug: { $ne: slug }, contentType: contentType as any })
     .select("slug title featuredImage contentType publishedAt wordCount")
     .sort({ publishedAt: -1 })
     .limit(3)
