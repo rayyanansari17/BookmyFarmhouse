@@ -108,7 +108,7 @@ OUTPUT FORMAT — JSON only, no markdown wrapper, no explanation outside the JSO
   "faqSchema": [
     { "question": "...", "answer": "..." }
   ],
-  "geoAnswerBlock": "2-3 paragraph direct answer to the primary question — structured for AI engine extraction",
+  "geoAnswerBlock": "2-3 paragraphs of PLAIN TEXT (no HTML tags) — a direct answer to the primary question for AI engine extraction",
   "internalLinks": [
     { "anchor": "...", "targetSlug": "blog/slug-here" }
   ],

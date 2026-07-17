@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Save, Globe, Loader2, RefreshCw, ExternalLink } from "lucide-react";
+import { ArrowLeft, Save, Globe, Loader2, RefreshCw, ExternalLink, ImagePlus, Trash2 } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +35,7 @@ interface Blog {
   geoAnswerBlock: string;
   publishedAt?: string;
   generatedBy?: string;
+  featuredImage?: { url: string; publicId: string };
 }
 
 const STATUS_OPTIONS = [
@@ -223,6 +225,50 @@ export default function BlogEditorPage() {
 
       {activeTab === "content" && (
         <div className="space-y-4">
+          {/* Featured image */}
+          <div className="space-y-2">
+            <Label>Featured Image</Label>
+            {blog.featuredImage?.url ? (
+              <div className="relative rounded-xl overflow-hidden border border-border" style={{ height: 200 }}>
+                <Image src={blog.featuredImage.url} alt="Featured" fill className="object-cover" />
+                <button
+                  onClick={async () => {
+                    await fetch(`/api/admin/blog/${id}/image`, { method: "DELETE" });
+                    setBlog((b) => b ? { ...b, featuredImage: undefined } : b);
+                    toast.success("Image removed");
+                  }}
+                  className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-lg p-1.5 hover:opacity-90"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl p-8 cursor-pointer hover:bg-muted/30 transition-colors">
+                <ImagePlus className="h-8 w-8 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Click to upload featured image</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const form = new FormData();
+                    form.append("image", file);
+                    const res = await fetch(`/api/admin/blog/${id}/image`, { method: "POST", body: form });
+                    const data = await res.json();
+                    if (data.success) {
+                      setBlog((b) => b ? { ...b, featuredImage: data.data } : b);
+                      toast.success("Image uploaded");
+                    } else {
+                      toast.error(data.error ?? "Upload failed");
+                    }
+                  }}
+                />
+              </label>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Target Keyword</Label>

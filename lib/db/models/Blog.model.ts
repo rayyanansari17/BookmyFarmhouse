@@ -58,6 +58,7 @@ export interface IBlogDocument extends Document {
   improvementHistory: IImprovementRecord[];
   seoScore: number;
   generatedBy?: string;
+  featuredImage?: { url: string; publicId: string };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -124,6 +125,10 @@ const BlogSchema = new Schema<IBlogDocument>(
     improvementHistory: [ImprovementRecordSchema],
     seoScore: { type: Number, default: 0 },
     generatedBy: { type: String },
+    featuredImage: {
+      url: { type: String },
+      publicId: { type: String },
+    },
   },
   { timestamps: true }
 );
