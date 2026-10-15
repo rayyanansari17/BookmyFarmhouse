@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongoose";
 import Property from "@/lib/db/models/Property.model";
+import { PUBLIC_PROPERTY_EXCLUDE } from "@/lib/services/property.service";
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,8 +17,8 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search");
     const sortBy = searchParams.get("sortBy") ?? "newest";
     const featured = searchParams.get("featured");
-    const page = parseInt(searchParams.get("page") ?? "1");
-    const limit = Math.min(parseInt(searchParams.get("limit") ?? "10"), 50);
+    const page = Math.max(parseInt(searchParams.get("page") ?? "1") || 1, 1);
+    const limit = Math.min(Math.max(parseInt(searchParams.get("limit") ?? "10") || 10, 1), 50);
 
     // Base filter: only approved, non-deleted listings
     const filter: Record<string, unknown> = { status: "approved", isDeleted: false };
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
 
     const skip = (page - 1) * limit;
     const [properties, total] = await Promise.all([
-      Property.find(filter).sort(sort).skip(skip).limit(limit).lean(),
+      Property.find(filter).select(`${PUBLIC_PROPERTY_EXCLUDE} -vendorId`).sort(sort).skip(skip).limit(limit).lean(),
       Property.countDocuments(filter),
     ]);
 
