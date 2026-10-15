@@ -14,16 +14,15 @@ import { InquiryTrigger } from "./InquiryTrigger";
 import { JsonLd } from "@/components/common/JsonLd";
 import { buildLocalBusinessSchema, buildBreadcrumbSchema } from "@/lib/schema";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { getPublicPropertyBySlug } from "@/lib/services/property.service";
 import type { IProperty, IUser } from "@/types";
+
+// Re-render listing pages at most once a minute (they read straight from the database)
+export const revalidate = 60;
 
 async function getProperty(slug: string): Promise<IProperty | null> {
   try {
-    const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-    const res = await fetch(`${baseUrl}/api/properties/${slug}`, {
-      next: { revalidate: 60 },
-    });
-    const data = await res.json();
-    return data.success ? data.data : null;
+    return await getPublicPropertyBySlug(slug);
   } catch {
     return null;
   }

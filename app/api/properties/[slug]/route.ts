@@ -1,23 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/db/mongoose";
-import Property from "@/lib/db/models/Property.model";
+import { getPublicPropertyBySlug } from "@/lib/services/property.service";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    await connectDB();
     const { slug } = await params;
-
-    const property = await Property.findOne({
-      slug,
-      status: "approved",
-      isDeleted: false,
-    })
-      .select("-scrapedPhone -scrapedWebsite")
-      .populate("vendorId", "name email businessName profileImage about phone")
-      .lean();
+    const property = await getPublicPropertyBySlug(slug);
 
     if (!property) {
       return NextResponse.json({ success: false, error: "Listing not found" }, { status: 404 });

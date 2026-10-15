@@ -1,0 +1,63 @@
+# Run from the repo root:
+#   docker compose -f deploy/oracle/docker-compose.yml --env-file deploy/oracle/.env up -d --build
+# Scraper only:  ... up -d --build redis scraper caddy
+# With SEO jobs: ... --profile seo up -d --build
+name: bmf
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    # no published ports: only reachable from other containers
+
+  scraper:
+    build:
+      context: ../..
+      dockerfile: deploy/oracle/Dockerfile.scraper
+    restart: unless-stopped
+    depends_on: [redis]
+    environment:
+      PORT: "3001"
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      SCRAPER_SECRET: ${SCRAPER_SECRET:?SCRAPER_SECRET must be set}
+    shm_size: "1gb" # Chromium needs a larger /dev/shm
+    init: true
+
+  seo-jobs:
+    profiles: ["seo"]
+    build:
+      context: ../..
+      dockerfile: deploy/oracle/Dockerfile.seo-jobs
+    restart: unless-stopped
+    depends_on: [redis]
+    environment:
+      PORT: "3002"
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      SEO_JOB_SECRET: ${SEO_JOB_SECRET:-}
+      MONGODB_URI: ${MONGODB_URI:-}
+      GSC_SITE_URL: ${GSC_SITE_URL:-}
+      GA4_PROPERTY_ID: ${GA4_PROPERTY_ID:-}
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${GOOGLE_SERVICE_ACCOUNT_JSON:-}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [scraper]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SCRAPER_HOST: ${SCRAPER_HOST:?SCRAPER_HOST must be set}
+      SEO_HOST: ${SEO_HOST:-seo.invalid}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  redis-data:
+  caddy-data:
+  caddy-config:

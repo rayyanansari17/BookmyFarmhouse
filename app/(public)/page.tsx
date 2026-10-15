@@ -5,6 +5,7 @@ import { FeaturedSection, FeaturedSectionSkeleton } from "@/components/public/Fe
 import { WhyChooseUs } from "@/components/public/WhyChooseUs";
 import { HowItWorks } from "@/components/public/HowItWorks";
 import { CTASection } from "@/components/public/CTASection";
+import { getFeaturedProperties } from "@/lib/services/property.service";
 import type { IProperty } from "@/types";
 
 export const metadata: Metadata = {
@@ -13,22 +14,20 @@ export const metadata: Metadata = {
   },
 };
 
-// Fetch featured properties server-side with 5-minute ISR cache
-async function getFeaturedProperties(): Promise<IProperty[]> {
+// Featured properties are read straight from the database (no self-HTTP call).
+// The page itself is revalidated every 5 minutes.
+export const revalidate = 300;
+
+async function loadFeaturedProperties(): Promise<IProperty[]> {
   try {
-    const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-    const res = await fetch(`${baseUrl}/api/properties?limit=4&sortBy=rating`, {
-      next: { revalidate: 300 },
-    });
-    const data = await res.json();
-    return data.success ? data.data : [];
+    return await getFeaturedProperties(4);
   } catch {
     return [];
   }
 }
 
 export default async function HomePage() {
-  const featuredProperties = await getFeaturedProperties();
+  const featuredProperties = await loadFeaturedProperties();
 
   return (
     <>
