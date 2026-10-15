@@ -1,5 +1,8 @@
 import { connectDB } from "@/lib/db/mongoose";
 import Property from "@/lib/db/models/Property.model";
+// Registers the "User" model: populate("vendorId") throws MissingSchemaError on a cold
+// serverless start if nothing else on this code path has loaded it.
+import "@/lib/db/models/User.model";
 import type { IProperty } from "@/types";
 
 // Internal fields that must never reach public pages or public APIs:
