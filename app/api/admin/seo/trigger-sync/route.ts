@@ -16,16 +16,14 @@ const VALID_TYPES = [
 export async function POST(req: NextRequest) {
   // Allow both session-based (admin UI) and cron-based (Vercel Cron) triggers
   const session = await auth();
-  const isAdminSession = session?.user.role === "admin";
-  const cronSecret = req.headers.get("x-vercel-cron-secret") ?? req.headers.get("authorization");
-  const isCronTrigger = cronSecret === process.env.CRON_SECRET;
+  const isAdminSession = session?.user?.role === "admin";
+  // Vercel Cron sends `Authorization: Bearer <CRON_SECRET>` when CRON_SECRET is set
+  const cronSecret = process.env.CRON_SECRET;
+  const isCronTrigger =
+    !!cronSecret && req.headers.get("authorization") === `Bearer ${cronSecret}`;
 
   if (!isAdminSession && !isCronTrigger) {
-    // Also check URL param for Vercel Cron (which passes no body)
-    const type = req.nextUrl.searchParams.get("type");
-    if (!type) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
 
   const body = req.method === "GET" ? {} : await req.json().catch(() => ({}));
