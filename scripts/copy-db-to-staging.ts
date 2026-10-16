@@ -14,7 +14,7 @@ import { MongoClient, type Db } from "mongodb";
 
 // Content needed to exercise the site. Inquiries, logs, tokens, scrape jobs and SEO metrics
 // are deliberately left out (customer PII / production-only history).
-const COLLECTIONS = ["properties", "locations", "blogs", "users"];
+const COLLECTIONS = ["properties", "locations", "users"];
 const BATCH_SIZE = 500;
 
 function dbName(uri: string): string {

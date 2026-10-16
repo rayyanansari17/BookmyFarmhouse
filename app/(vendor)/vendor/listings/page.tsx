@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Plus, Search, Pencil, Trash2, ExternalLink, Filter,
+  Plus, Search, Pencil, Trash2, Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -199,13 +199,6 @@ export default function MyListingsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1 justify-end">
-                      {listing.status === "approved" && (
-                        <Link href={`/listing/${listing.slug}`} target="_blank">
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </Button>
-                        </Link>
-                      )}
                       <Link href={`/vendor/listings/${listing._id}/edit`}>
                         <Button variant="ghost" size="icon" className="h-7 w-7">
                           <Pencil className="h-3.5 w-3.5" />

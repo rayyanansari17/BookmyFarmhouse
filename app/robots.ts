@@ -1,15 +1,8 @@
 import type { MetadataRoute } from "next";
 
+// Only the vendor and admin portals remain (no public pages), so block all crawlers.
 export default function robots(): MetadataRoute.Robots {
-  const base = process.env.SITE_URL ?? "https://bookmyfarmhouse.app";
   return {
-    rules: [
-      {
-        userAgent: "*",
-        allow: "/",
-        disallow: ["/admin/", "/vendor/", "/api/"],
-      },
-    ],
-    sitemap: `${base}/sitemap.xml`,
+    rules: [{ userAgent: "*", disallow: "/" }],
   };
 }

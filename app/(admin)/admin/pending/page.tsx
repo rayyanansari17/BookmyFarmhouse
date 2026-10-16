@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { CheckCircle, XCircle, Star, ExternalLink, Building2, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Star, Building2, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -141,9 +140,7 @@ export default function PendingListingsPage() {
                     </div>
                   </div>
                   <div className="border-t border-border flex items-center justify-between px-4 py-2.5 bg-muted/30">
-                    <Link href={`/listing/${listing.slug}`} target="_blank" className="text-xs text-primary flex items-center gap-1 hover:underline">
-                      Preview <ExternalLink className="h-3 w-3" />
-                    </Link>
+                    <span />
                     <div className="flex gap-2">
                       <Button
                         size="sm"

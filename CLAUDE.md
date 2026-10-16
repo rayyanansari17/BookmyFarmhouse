@@ -4,7 +4,9 @@ This is the **Next.js 16 version** of BookMyFarmhouse, fully migrated from a 3-r
 
 ## What this app is
 
-A farmhouse/venue marketplace for India. Vendors list properties → admins approve → public users search and submit inquiries. Brand color: `#ff914d` (orange). Currency: INR.
+A farmhouse/venue management app for India with **two portals only**: vendors list properties and manage their profile/leads,
+admins review and approve listings and manage the platform. There is **no public/customer-facing site**: `/` redirects to the
+vendor login (admins sign in at `/admin/login`). Brand color: `#ff914d` (orange). Currency: INR.
 
 ## Project status: COMPLETE — ready for deployment
 
@@ -17,7 +19,7 @@ Build passes with 0 TypeScript errors. All 33 pages compiled. Run `npm run build
 - **NextAuth v5 (beta)** — JWT strategy, CredentialsProvider + GoogleProvider
 - **Mongoose 9** — MongoDB models in `lib/db/models/`
 - **Zod v4** — Validation in `lib/validators.ts`
-- **Framer Motion** — Public page animations, shared variants in `lib/motion.ts`
+- **Framer Motion** — Page animations, shared variants in `lib/motion.ts`
 - **Recharts** — Admin analytics charts
 - **Cloudinary** — Image storage
 
@@ -49,14 +51,6 @@ Build passes with 0 TypeScript errors. All 33 pages compiled. Run `npm run build
 
 ## Routes
 
-### Public — `app/(public)/`
-| Route | Type |
-|---|---|
-| `/` | SSR — Homepage with hero, featured, why, how, CTA |
-| `/search` | SSR — Search with city/guests/price/amenity filters |
-| `/listing/[slug]` | ISR 60s — Listing detail + inquiry modal |
-| `/become-vendor` | Static |
-
 ### Vendor portal — `app/(vendor)/vendor/` (requires vendor role)
 | Route | Description |
 |---|---|
@@ -64,7 +58,7 @@ Build passes with 0 TypeScript errors. All 33 pages compiled. Run `npm run build
 | `/vendor/listings` | Listings table with status filter |
 | `/vendor/listings/new` | Multi-step add listing form + Cloudinary upload |
 | `/vendor/listings/[id]/edit` | Edit listing + manage images |
-| `/vendor/leads` | Inquiry management |
+| `/vendor/leads` | Inquiry management (inquiries came from the removed public form, so no new leads arrive) |
 | `/vendor/profile` | Edit vendor profile |
 | `/vendor/login` `/vendor/register` `/vendor/onboarding` | Auth flow |
 
@@ -120,7 +114,7 @@ Vercel project `bookmyfarmhouse` (team `rayyab`, Hobby plan). Two long-lived bra
 
 | Branch | Deploys to | Database | Access |
 |---|---|---|---|
-| `main` | Production: https://bookmyfarmhouse.vercel.app | `bookmyfarmhouse` | Public |
+| `main` | Production: https://bookmyfarmhouse.vercel.app | `bookmyfarmhouse` | Open (login-gated portals) |
 | `staging` | Staging: https://bookmyfarmhouse-git-staging-rayyab.vercel.app | `bookmyfarmhouse_staging` | Vercel team login |
 | any other branch | Preview URL per push | `bookmyfarmhouse_staging` | Vercel team login |
 
@@ -133,7 +127,7 @@ Env vars:
 - `SCRAPER_SERVICE_URL` is production-only, because the Render scraper writes to the production DB.
   So scraping is unavailable on staging and previews.
 
-Refresh staging data from production (copies properties, locations, blogs, users; never inquiries/logs):
+Refresh staging data from production (copies properties, locations, users; never inquiries/logs):
 ```bash
 SOURCE_MONGODB_URI=".../bookmyfarmhouse" TARGET_MONGODB_URI=".../bookmyfarmhouse_staging" \
   npx tsx scripts/copy-db-to-staging.ts            # add --verify to only compare counts

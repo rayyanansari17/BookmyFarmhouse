@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "./providers";
 import { GoogleAnalytics } from "@/components/common/GoogleAnalytics";
-import { JsonLd } from "@/components/common/JsonLd";
-import { buildOrganizationSchema, buildWebSiteSchema } from "@/lib/schema";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,6 +18,8 @@ const BASE_URL = "https://bookmyfarmhouse.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
+  // Only the vendor and admin portals remain, so keep search engines out entirely.
+  robots: { index: false, follow: false },
   title: {
     default: "BookMyFarmhouse — Premium Farmhouse & Event Venues",
     template: "%s | BookMyFarmhouse",
@@ -52,8 +52,6 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col antialiased">
         <GoogleAnalytics />
-        <JsonLd schema={buildOrganizationSchema(BASE_URL)} />
-        <JsonLd schema={buildWebSiteSchema(BASE_URL)} />
         <Providers>{children}</Providers>
       </body>
     </html>
