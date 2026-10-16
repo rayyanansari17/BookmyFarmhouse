@@ -130,9 +130,8 @@ Never commit straight to `main`.
 Env vars:
 - `MONGODB_URI` is production-only for the `bookmyfarmhouse` DB; every preview (incl. staging) gets the staging DB.
 - `NEXTAUTH_URL`, `SITE_URL` and `NEXTAUTH_SECRET` have `staging` branch overrides.
-- `SEO_JOB_SERVICE_URL` / `SCRAPER_SERVICE_URL` are production-only, because the Render services write to the production DB.
-  So scraping and SEO jobs are unavailable on staging and previews.
-- Vercel Cron runs on production only.
+- `SCRAPER_SERVICE_URL` is production-only, because the Render scraper writes to the production DB.
+  So scraping is unavailable on staging and previews.
 
 Refresh staging data from production (copies properties, locations, blogs, users; never inquiries/logs):
 ```bash

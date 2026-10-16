@@ -1,11 +1,10 @@
-# Run the scraper (and optionally SEO jobs) on an Oracle Cloud Always Free VM
+# Run the scraper on an Oracle Cloud Always Free VM
 
 Stack on the VM: **Docker Compose** → `redis` (job queue) + `scraper` (Playwright/Chromium)
-+ optional `seo-jobs` + `caddy` (automatic free HTTPS). The Vercel app calls the scraper over HTTPS.
++ `caddy` (automatic free HTTPS). The Vercel app calls the scraper over HTTPS.
 
 ```
 Vercel app ──HTTPS──▶ Caddy ──▶ scraper ──▶ Redis (Bull queue)
-                              └▶ seo-jobs (optional profile)
 scraper ──HTTPS callback──▶ Vercel  /api/admin/scraper/jobs/<id>/{progress,results}
 ```
 
@@ -60,19 +59,15 @@ cd deploy/oracle
 cp .env.example .env
 nano .env
 ```
-- `SCRAPER_HOST` / `SEO_HOST`: your IP with dots → dashes on `sslip.io`, e.g. IP `129.146.10.5` →
-  `scraper.129-146-10-5.sslip.io` and `seo.129-146-10-5.sslip.io` (free DNS, no domain purchase needed).
+- `SCRAPER_HOST`: your IP with dots → dashes on `sslip.io`, e.g. IP `129.146.10.5` →
+  `scraper.129-146-10-5.sslip.io` (free DNS, no domain purchase needed).
 - `REDIS_PASSWORD`: `openssl rand -hex 24`
 - `SCRAPER_SECRET`: **must be identical** to `SCRAPER_SECRET` in the Vercel project env.
-- Only if you also run SEO jobs here: `SEO_JOB_SECRET` (same as Vercel), `MONGODB_URI`, and the Google variables.
 
 ## 7. Start it
 From the **repo root** (`~/BookmyFarmhouse`):
 ```bash
-# scraper only
-docker compose -f deploy/oracle/docker-compose.yml --env-file deploy/oracle/.env up -d --build redis scraper caddy
-# scraper + SEO jobs
-docker compose -f deploy/oracle/docker-compose.yml --env-file deploy/oracle/.env --profile seo up -d --build
+docker compose -f deploy/oracle/docker-compose.yml --env-file deploy/oracle/.env up -d --build
 ```
 The first build takes several minutes (it downloads Chromium and its system libraries).
 ```bash
@@ -93,7 +88,6 @@ The first HTTPS request may take ~30 s while Caddy fetches the certificate.
 In Vercel → Project → Settings → Environment Variables (Production + Preview):
 - `SCRAPER_SERVICE_URL` = `https://scraper.<IP-WITH-DASHES>.sslip.io`
 - `SCRAPER_SECRET` = same value as in the VM's `.env`
-- If SEO jobs run on the VM too: `SEO_JOB_SERVICE_URL` = `https://seo.<IP-WITH-DASHES>.sslip.io`
 
 Then **redeploy** the Vercel project so the variables apply.
 
