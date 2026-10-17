@@ -5,8 +5,6 @@ import User from "@/lib/db/models/User.model";
 import Property from "@/lib/db/models/Property.model";
 import Inquiry from "@/lib/db/models/Inquiry.model";
 import Location from "@/lib/db/models/Location.model";
-import ScrapedListing from "@/lib/db/models/ScrapedListing.model";
-import ScrapeJob from "@/lib/db/models/ScrapeJob.model";
 import RefreshToken from "@/lib/db/models/RefreshToken.model";
 import RequestLog from "@/lib/db/models/RequestLog.model";
 
@@ -24,8 +22,6 @@ export async function GET() {
     users,
     inquiries,
     locations,
-    scrapedListings,
-    scrapeJobs,
     refreshTokens,
     requestLogs,
   ] = await Promise.all([
@@ -34,8 +30,6 @@ export async function GET() {
     User.countDocuments(),
     Inquiry.countDocuments(),
     Location.countDocuments(),
-    ScrapedListing.countDocuments(),
-    ScrapeJob.countDocuments(),
     RefreshToken.countDocuments(),
     RequestLog.countDocuments(),
   ]);
@@ -48,8 +42,6 @@ export async function GET() {
       users,
       inquiries,
       locations,
-      scrapedListings,
-      scrapeJobs,
       refreshTokens,
       requestLogs,
     },

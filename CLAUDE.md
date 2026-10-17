@@ -106,7 +106,7 @@ pnpm lint     # ESLint
 4. Set `NEXTAUTH_URL` to production domain
 5. Add production domain to Google OAuth redirect URIs (Google Cloud Console)
 6. MongoDB Atlas → Network Access → allow Vercel IPs (or `0.0.0.0/0`)
-7. Seed admin user in Atlas directly: create a User document with `role: "admin"` and bcrypt-hashed password
+7. Create the admin user in Atlas directly: a User document with `role: "admin"` and a bcrypt-hashed password (there is no seed script in the repo)
 
 ## Release process (staging → production)
 
@@ -124,15 +124,6 @@ Never commit straight to `main`.
 Env vars:
 - `MONGODB_URI` is production-only for the `bookmyfarmhouse` DB; every preview (incl. staging) gets the staging DB.
 - `NEXTAUTH_URL`, `SITE_URL` and `NEXTAUTH_SECRET` have `staging` branch overrides.
-- `SCRAPER_SERVICE_URL` is production-only, because the Render scraper writes to the production DB.
-  So scraping is unavailable on staging and previews.
-
-Refresh staging data from production (copies properties, locations, users; never inquiries/logs):
-```bash
-SOURCE_MONGODB_URI=".../bookmyfarmhouse" TARGET_MONGODB_URI=".../bookmyfarmhouse_staging" \
-  npx tsx scripts/copy-db-to-staging.ts            # add --verify to only compare counts
-```
-The script refuses any target whose database name doesn't contain `staging`. Atlas must be reachable from where it runs.
 
 ## Key files reference
 

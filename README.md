@@ -11,4 +11,3 @@ pnpm lint
 ```
 
 See [CLAUDE.md](./CLAUDE.md) for the tech stack, routes, environment variables, and the staging → production release process.
-The scraper service lives in `scraper/` (deployment bundle in `deploy/oracle/`).

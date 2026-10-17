@@ -5,8 +5,6 @@ import User from "@/lib/db/models/User.model";
 import Property from "@/lib/db/models/Property.model";
 import Inquiry from "@/lib/db/models/Inquiry.model";
 import Location from "@/lib/db/models/Location.model";
-import ScrapedListing from "@/lib/db/models/ScrapedListing.model";
-import ScrapeJob from "@/lib/db/models/ScrapeJob.model";
 import RefreshToken from "@/lib/db/models/RefreshToken.model";
 import RequestLog from "@/lib/db/models/RequestLog.model";
 
@@ -54,16 +52,6 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     }
     case "locations": {
       const r = await Location.deleteMany({});
-      deleted = r.deletedCount;
-      break;
-    }
-    case "scrapedListings": {
-      const r = await ScrapedListing.deleteMany({});
-      deleted = r.deletedCount;
-      break;
-    }
-    case "scrapeJobs": {
-      const r = await ScrapeJob.deleteMany({});
       deleted = r.deletedCount;
       break;
     }

@@ -44,5 +44,3 @@ next-env.d.ts
 deploy/oracle/.env
 !deploy/oracle/.env.example
 
-# local scraper output (contains scraped contact details)
-/scripts/output/

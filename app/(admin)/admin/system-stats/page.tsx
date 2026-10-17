@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Building2, Trash2, Users, MessageSquare, MapPin, Database,
-  ScanSearch, Key, ScrollText, AlertTriangle, RefreshCw, Loader2,
+  Key, ScrollText, AlertTriangle, RefreshCw, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import {
 
 type CollectionKey =
   | "properties" | "deletedProperties" | "users" | "inquiries"
-  | "locations" | "scrapedListings" | "scrapeJobs" | "refreshTokens" | "requestLogs";
+  | "locations" | "refreshTokens" | "requestLogs";
 
 interface Stats {
   properties: number;
@@ -23,8 +23,6 @@ interface Stats {
   users: number;
   inquiries: number;
   locations: number;
-  scrapedListings: number;
-  scrapeJobs: number;
   refreshTokens: number;
   requestLogs: number;
 }
@@ -69,18 +67,6 @@ const CARDS: CardDef[] = [
     label: "Locations",
     icon: MapPin,
     description: "Managed city / state pairs for dropdowns.",
-  },
-  {
-    key: "scrapedListings",
-    label: "Scraped Listings",
-    icon: ScanSearch,
-    description: "Listings in the scraper staging collection.",
-  },
-  {
-    key: "scrapeJobs",
-    label: "Scrape Jobs",
-    icon: Database,
-    description: "Scraper job records and their progress logs.",
   },
   {
     key: "refreshTokens",
