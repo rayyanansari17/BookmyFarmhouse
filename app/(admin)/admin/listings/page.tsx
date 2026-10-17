@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { Search, Building2, ExternalLink, Star, ChevronLeft, ChevronRight, Loader2, Trash2 } from "lucide-react";
+import { Search, Building2, Star, ChevronLeft, ChevronRight, Loader2, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -207,11 +206,6 @@ export default function AdminListingsPage() {
                     <TableCell className="text-sm text-muted-foreground">{formatDate(listing.createdAt)}</TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
-                        <Link href={`/listing/${listing.slug}`} target="_blank">
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </Button>
-                        </Link>
                         <Button
                           variant="ghost"
                           size="icon"

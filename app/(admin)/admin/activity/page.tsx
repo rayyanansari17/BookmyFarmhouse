@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import Link from "next/link";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -136,13 +135,7 @@ export default function ActivityPage() {
                   </span>
                 </div>
                 <div className="text-sm font-medium text-foreground min-w-0">
-                  <Link
-                    href={`/listing/${item.slug}`}
-                    target="_blank"
-                    className="hover:text-primary transition-colors truncate block"
-                  >
-                    {item.title}
-                  </Link>
+                  <span className="truncate block">{item.title}</span>
                 </div>
                 <div className="text-xs text-muted-foreground min-w-0">
                   {item.actor?.name ?? <span className="italic">System</span>}

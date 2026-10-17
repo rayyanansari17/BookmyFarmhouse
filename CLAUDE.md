@@ -4,11 +4,13 @@ This is the **Next.js 16 version** of BookMyFarmhouse, fully migrated from a 3-r
 
 ## What this app is
 
-A farmhouse/venue marketplace for India. Vendors list properties → admins approve → public users search and submit inquiries. Brand color: `#ff914d` (orange). Currency: INR.
+A farmhouse/venue management app for India with **two portals only**: vendors list properties and manage their profile/leads,
+admins review and approve listings and manage the platform. There is **no public/customer-facing site**: `/` redirects to the
+vendor login (admins sign in at `/admin/login`). Brand color: `#ff914d` (orange). Currency: INR.
 
 ## Project status: COMPLETE — ready for deployment
 
-Build passes with 0 TypeScript errors. All 33 pages compiled. Run `npm run build` to verify.
+Build passes with 0 TypeScript errors. All 33 pages compiled. Run `pnpm build` to verify.
 
 ## Tech stack
 
@@ -17,7 +19,7 @@ Build passes with 0 TypeScript errors. All 33 pages compiled. Run `npm run build
 - **NextAuth v5 (beta)** — JWT strategy, CredentialsProvider + GoogleProvider
 - **Mongoose 9** — MongoDB models in `lib/db/models/`
 - **Zod v4** — Validation in `lib/validators.ts`
-- **Framer Motion** — Public page animations, shared variants in `lib/motion.ts`
+- **Framer Motion** — Page animations, shared variants in `lib/motion.ts`
 - **Recharts** — Admin analytics charts
 - **Cloudinary** — Image storage
 
@@ -49,14 +51,6 @@ Build passes with 0 TypeScript errors. All 33 pages compiled. Run `npm run build
 
 ## Routes
 
-### Public — `app/(public)/`
-| Route | Type |
-|---|---|
-| `/` | SSR — Homepage with hero, featured, why, how, CTA |
-| `/search` | SSR — Search with city/guests/price/amenity filters |
-| `/listing/[slug]` | ISR 60s — Listing detail + inquiry modal |
-| `/become-vendor` | Static |
-
 ### Vendor portal — `app/(vendor)/vendor/` (requires vendor role)
 | Route | Description |
 |---|---|
@@ -64,7 +58,7 @@ Build passes with 0 TypeScript errors. All 33 pages compiled. Run `npm run build
 | `/vendor/listings` | Listings table with status filter |
 | `/vendor/listings/new` | Multi-step add listing form + Cloudinary upload |
 | `/vendor/listings/[id]/edit` | Edit listing + manage images |
-| `/vendor/leads` | Inquiry management |
+| `/vendor/leads` | Inquiry management (inquiries came from the removed public form, so no new leads arrive) |
 | `/vendor/profile` | Edit vendor profile |
 | `/vendor/login` `/vendor/register` `/vendor/onboarding` | Auth flow |
 
@@ -99,9 +93,9 @@ NEXT_PUBLIC_GA_ID=        # optional — Google Analytics
 ## Development commands
 
 ```bash
-npm run dev      # http://localhost:3000
-npm run build    # production build
-npm run lint     # ESLint
+pnpm dev      # http://localhost:3000
+pnpm build    # production build
+pnpm lint     # ESLint
 ```
 
 ## Deployment to Vercel
@@ -112,7 +106,24 @@ npm run lint     # ESLint
 4. Set `NEXTAUTH_URL` to production domain
 5. Add production domain to Google OAuth redirect URIs (Google Cloud Console)
 6. MongoDB Atlas → Network Access → allow Vercel IPs (or `0.0.0.0/0`)
-7. Seed admin user in Atlas directly: create a User document with `role: "admin"` and bcrypt-hashed password
+7. Create the admin user in Atlas directly: a User document with `role: "admin"` and a bcrypt-hashed password (there is no seed script in the repo)
+
+## Release process (staging → production)
+
+Vercel project `bookmyfarmhouse` (team `rayyab`, Hobby plan). Two long-lived branches:
+
+| Branch | Deploys to | Database | Access |
+|---|---|---|---|
+| `main` | Production: https://bookmyfarmhouse.vercel.app | `bookmyfarmhouse` | Open (login-gated portals) |
+| `staging` | Staging: https://bookmyfarmhouse-git-staging-rayyab.vercel.app | `bookmyfarmhouse_staging` | Vercel team login |
+| any other branch | Preview URL per push | `bookmyfarmhouse_staging` | Vercel team login |
+
+Flow: feature branch → PR into `staging` → test on the staging URL → PR `staging` → `main` → production.
+Never commit straight to `main`.
+
+Env vars:
+- `MONGODB_URI` is production-only for the `bookmyfarmhouse` DB; every preview (incl. staging) gets the staging DB.
+- `NEXTAUTH_URL`, `SITE_URL` and `NEXTAUTH_SECRET` have `staging` branch overrides.
 
 ## Key files reference
 

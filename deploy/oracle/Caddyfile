@@ -1,9 +1,0 @@
-# Caddy obtains and renews free Let's Encrypt certificates automatically.
-# SCRAPER_HOST / SEO_HOST come from .env (sslip.io names work without owning a domain).
-{$SCRAPER_HOST} {
-	reverse_proxy scraper:3001
-}
-
-{$SEO_HOST} {
-	reverse_proxy seo-jobs:3002
-}

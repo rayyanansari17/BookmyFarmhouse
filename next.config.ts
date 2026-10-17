@@ -15,11 +15,9 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "15mb", // Cloudinary image uploads
     },
   },
-  async rewrites() {
-    return [
-      // /farmhouses-in-hyderabad → internal /city/hyderabad (SSR city hub page)
-      { source: "/farmhouses-in-:city", destination: "/city/:city" },
-    ];
+  async redirects() {
+    // No public site: the root goes to the vendor login (admins use /admin/login).
+    return [{ source: "/", destination: "/vendor/login", permanent: false }];
   },
   async headers() {
     return [
