@@ -10,7 +10,7 @@ vendor login (admins sign in at `/admin/login`). Brand color: `#ff914d` (orange)
 
 ## Project status: COMPLETE — ready for deployment
 
-Build passes with 0 TypeScript errors. All 33 pages compiled. Run `npm run build` to verify.
+Build passes with 0 TypeScript errors. All 33 pages compiled. Run `pnpm build` to verify.
 
 ## Tech stack
 
@@ -93,9 +93,9 @@ NEXT_PUBLIC_GA_ID=        # optional — Google Analytics
 ## Development commands
 
 ```bash
-npm run dev      # http://localhost:3000
-npm run build    # production build
-npm run lint     # ESLint
+pnpm dev      # http://localhost:3000
+pnpm build    # production build
+pnpm lint     # ESLint
 ```
 
 ## Deployment to Vercel
